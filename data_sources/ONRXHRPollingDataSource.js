@@ -124,7 +124,7 @@ ONR.ONRXHRPollingDataSource = ONR.ONRDataSource.extend({
    },
    
    handleXHRPolling: function(response,dataSource){
-      SC.RunLoop.begin();
+     // no runloop needed as this is taken care of in the main data source
       //if(response.request !== this._pollingRequest) return; // ignore "old" requests
       if(SC.ok(response)){
          var dataHandler = dataSource.createOnMessageHandler();
@@ -136,7 +136,6 @@ ONR.ONRXHRPollingDataSource = ONR.ONRDataSource.extend({
          dataSource.connectXHRPollingSC();
       }
       console.log('current status: ' + response.status);
-      SC.RunLoop.end();
    },
    
    showReconnectMessage: function(msg){

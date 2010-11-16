@@ -162,9 +162,8 @@ ONR.ONRDataSource = SC.DataSource.extend({
       var me = this;
       return function(event){
          //console.log('onMessageHandler: called with ' + JSON.stringify(event));
-         // first of all: try to parse the data, 
-         // whether websocket is the best way to do binary data... 
-         // if there is any binary data, there will be trouble...
+         // JSON data is expected
+         SC.RunLoop.begin(); // data received in some way, so an event has taken place
          if(event.data){
             var messages = (SC.typeOf(event.data) === SC.T_STRING)? JSON.parse(event.data): event.data;
             //console.log("data in event: " + event.data);
@@ -195,6 +194,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
                } // end for
             }  
             else console.log("Received information from the server that couldn't be parsed");
+            SC.RunLoop.end();
          } // otherwise ignore
       };
    },
