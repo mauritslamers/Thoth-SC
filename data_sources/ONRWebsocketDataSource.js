@@ -21,11 +21,9 @@ ONR.ONRWebSocketDataSource = ONR.ONRDataSource.extend({
    },
    
    send: function(val){
-      //console.log('Send function called on OrionNodeRiak Datasource');
       if(this._webSocket && val){
          var msg = JSON.stringify(val);
          console.log('Trying to send message: ' + msg);
-         //return this._webSocket.send(msg);
          this._webSocket.send(msg); // cannot return anything as the calling function is most likely GC'ed already
       }
       else return false;

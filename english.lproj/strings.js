@@ -12,4 +12,8 @@
 //
 SC.stringsFor('English', {
   // "_String Key": "Localized String"
+  "_loginwelcome":"Please fill in your login information",
+  "_username":"User name",
+  "_password":"Password",
+  "_cancel":"Cancel"
 }) ;
