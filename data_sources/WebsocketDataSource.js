@@ -1,12 +1,12 @@
-sc_require('data_sources/ONRDataSource');
+sc_require('data_sources/DataSource');
 
-ONR.ONRWebSocketDataSource = ONR.ONRDataSource.extend({
+ThothSC.WebSocketDataSource = ThothSC.DataSource.extend({
    
-   ONRHost: 'localhost',
+   ThothHost: 'localhost',
    
-   ONRPort: '8080',
+   ThothPort: '8080',
    
-   ONRURL: '/socket.io/websocket',
+   ThothURL: '/socket.io/websocket',
    
    _webSocket: null, // the websocket object will be stored here
    

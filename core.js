@@ -1,20 +1,20 @@
 // ==========================================================================
-// Project:   Onr
-// Copyright: ©2010 My Company, Inc.
+// Project:   ThothSC
+// Copyright: ©2010 Maurits Lamers
 // ==========================================================================
-/*globals Onr */
+/*globals ThothSC */
 
 /** @namespace
 
-  My cool new framework.  Describe your framework.
+  A framework to connect to the Thoth server application
   
   @extends SC.Object
 */
-ONR = SC.Object.create(
+ThothSC = SC.Object.create(
   /** @scope Onr.prototype */ {
 
-  NAMESPACE: 'ONR',
-  VERSION: '0.1.0',
+  NAMESPACE: 'ThothSC',
+  VERSION: '0.1.0'
 
   // TODO: Add global constants or singleton objects needed by your app here.
 

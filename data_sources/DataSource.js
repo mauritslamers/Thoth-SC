@@ -38,20 +38,20 @@ There are a few conditions that need to be in place to make this work:
 // basic version without traffic specific stuff
 
 
-ONR.ONRDataSource = SC.DataSource.extend({
+ThothSC.DataSource = SC.DataSource.extend({
    /*
      =====
      User configurable properties
      =====
    */
    
-   ONRHost: null,
+   ThothHost: null,
    
-   ONRPort: null,
+   ThothPort: null,
    
-   ONRURL: null,
+   ThothURL: null,
    
-   ONRRESTPrefix: null,
+   ThothRESTPrefix: null,
    
    authSuccessCallback: null, 
    
@@ -70,19 +70,19 @@ ONR.ONRDataSource = SC.DataSource.extend({
    store: null, // a reference to the store where the (forced) updates need to be sent
          
    connect: function(store,callback){ // we need the store to direct the push traffic to
-      throw("ONRDatasource connect: You are using the basic data source without traffic specification...");
+      throw("Thoth Datasource connect: You are using the basic data source without traffic specification...");
    },
    
    _isXDomain: function(){
-		return this.ONRHost !== document.domain; // include the port number??
+		return this.ThothHost !== document.domain; // include the port number??
 	},
    
    getHost: function(){
-      return this.ONRPort? [this.ONRHost,this.ONRPort].join(":") : this.ONRHost;
+      return this.ThothPort? [this.ThothHost,this.ThothPort].join(":") : this.ThothHost;
    },
    
    getConnectUrl: function(){
-      return [this.getHost(),this.ONRURL].join("");   
+      return [this.getHost(),this.ThothURL].join("");   
    },
    
    
@@ -92,7 +92,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
      only one that will be called. With websockets you just don't know in what order
      the answers to the requests will arrive...
      
-     To ease that problem the OrionNodeRiak API allows to send along some data identifying your request.
+     To ease that problem the Thoth API allows to send along some data identifying your request.
      Included in this datasource is an implementation of this.
      
      You need to add a property called bucket to your model definition, containing the bucket where the information
@@ -100,7 +100,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
      
    */
    send: function(val){
-      throw("ONRDatasource send: You are using the basic data source without traffic specification...");
+      throw("Thoth Datasource send: You are using the basic data source without traffic specification...");
    },
    
    _pane: null,
@@ -109,7 +109,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
    showErrorMessage: function(message,callback){
       if(this._pane) return NO; // don't show if a pane already exists
       var me = this;
-      var sheet = ONR.ErrorMessage.create({ message: message, dataSource: this});
+      var sheet = ThothSC.ErrorMessage.create({ message: message, dataSource: this});
       this._pane = sheet;
       this._callback = callback;
       sheet.append();
@@ -128,7 +128,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
    showLoginPane: function(){
       if(this._pane) return NO; // don't add another pane if there already is one
       var me = this;
-      var sheet = ONR.LoginPane.create({ dataSource: this });
+      var sheet = ThothSC.LoginPane.create({ dataSource: this });
       
       this._pane = sheet;
       sheet.append();
@@ -309,7 +309,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
    _rpcRequestCache: null,
    
    rpcRequest: function(functionName,params,callback){
-      // generate an RPC request to ONR
+      // generate an RPC request to Thoth
       var cacheKey = this._createRequestCacheKey();
       if(!this._rpcRequestCache) this._rpcRequestCache = {};
       if(!this._rpcRequestCache[cacheKey]) this._rpcRequestCache[cacheKey] = { callback: callback };
@@ -317,7 +317,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
    },
    
    onRPCResult: function(data){
-      if(!this._rpcRequestCache) throw "ONRDataSource: received an RPC onRPC result but no request has been sent";
+      if(!this._rpcRequestCache) throw "Thoth DataSource: received an RPC onRPC result but no request has been sent";
       else {
          var rpcResult = data.rpcResult;
          if(rpcResult){
@@ -325,12 +325,12 @@ ONR.ONRDataSource = SC.DataSource.extend({
             this._rpcRequestCache[cacheKey].callback(rpcResult);
             delete this._rpcRequestCache[cacheKey]; // clean up
          }
-         else throw "ONRDataSource: received an invalid rpcResult message";
+         else throw "Thoth DataSource: received an invalid rpcResult message";
       }
    },
    
    onRPCError: function(data){
-      if(!this._rpcRequestCache) throw "ONRDataSource: received an RPC onRPC error but no request has been sent";
+      if(!this._rpcRequestCache) throw "Thoth DataSource: received an RPC onRPC error but no request has been sent";
       else {
          var rpcError = data.rpcError;
          var cacheKey = rpcError.returnData.cacheKey;
@@ -340,7 +340,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
    
    /*
       =====
-      WebSocket Push callbacks
+      Push callbacks
       =====
    */
    
@@ -354,7 +354,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
       //var relations = createRequest.relations; // cannot recall whether this is actually necessary ... 
       //var recordToCreate = relations? this._processRelationSet([createRequest.record],relations)
       //pushRetrieve: function(recordType, id, dataHash, storeKey) {
-      var storeKey = this.store.pushRetrieve(rectype,key,createRequest.record); // this also depends on ONR setting id to the Riak key!!
+      var storeKey = this.store.pushRetrieve(rectype,key,createRequest.record); // this also depends on Thoth setting id to the Riak key!!
       if(!storeKey){
          // oops... the store didn't allow storing this record...
          // unclear what to do in this case
@@ -487,14 +487,14 @@ ONR.ONRDataSource = SC.DataSource.extend({
    
    fetch: function(store,query){      
       var rectype, bucket;
-      //console.log('ONRDataSource: fetch called!');
+      //console.log('Thoth DataSource: fetch called!');
       rectype = query.get('recordType');
       if(rectype){
         try{
           bucket = rectype.prototype.bucket; 
         }
         catch(e) {
-          var err = SC.Error.create({ message: "ONR cannot retrieve the bucket property from the record model. This may be caused by an improper invocation of SC.Query.local()."});
+          var err = SC.Error.create({ message: "ThothSC cannot retrieve the bucket property from the record model. This may be caused by an improper invocation of SC.Query.local()."});
           throw(err);
         }
          // cache rectype by bucket
@@ -590,7 +590,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
    },
    
    onFetchError: function(data){
-      //function to handle ONR error messages for fetch
+      //function to handle Thoth error messages for fetch
       var fetchError = data.fetchError;
       if(fetchError){
          var errorCode = fetchError.errorCode;
@@ -897,7 +897,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
    },
    
    onRefreshRecordError: function(data){
-      //function to handle ONR error messages for fetch
+      //function to handle Thoth error messages for fetch
       var refreshRecordError = data.refreshRecordError;
       if(refreshRecordError){
          var errorCode = refreshRecordError.errorCode;
@@ -999,7 +999,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
    },
    
    onCreateRecordError: function(data){
-      //function to handle ONR error messages for fetch
+      //function to handle Thoth error messages for fetch
       var createRecordError = data.createRecordError;
       if(createRecordError){
          var errorCode = createRecordError.errorCode;
@@ -1019,7 +1019,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
    
    onCreateRecordResult: function(data){
       // function to process the data from the server when a createRecord call has been made to the server
-      console.log('ONR onCreateRecordResult: ' + JSON.stringify(data));
+      console.log('ThothSC onCreateRecordResult: ' + JSON.stringify(data));
       var createRecordResult = data.createRecordResult;
       var requestCacheKey = createRecordResult.returnData.requestCacheKey;
       var requestCache = this._requestCache[requestCacheKey];
@@ -1033,9 +1033,9 @@ ONR.ONRDataSource = SC.DataSource.extend({
    },
    
    updateRecord: function(store,storeKey,params){
-      console.log('ONR data source updateRecord called');
-      // function to send updates to ONR.
-      // ONR supports separate relation updates from record information
+      console.log('ThothSC data source updateRecord called');
+      // function to send updates to Thoth.
+      // Thoth supports separate relation updates from record information
       // SC doesn't at the moment, so we'll just do everything together
       // reading the updateRecord documentation: params can be provided along with the commitRecords() 
       // call to the store... So that might provide a route...
@@ -1067,7 +1067,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
    },   
 
    onUpdateRecordError: function(data){
-      //function to handle ONR error messages for update
+      //function to handle Thoth error messages for update
       var updateRecordError = data.updateRecordError;
       if(updateRecordError){
          var errorCode = updateRecordError.errorCode;
@@ -1088,7 +1088,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
    onUpdateRecordResult: function(data){
       console.log("Received update: " + JSON.stringify(data));
       // different implementation of the onUpdateRecordResult
-      // as ONR can also return the data in one go
+      // as Thoth can also return the data in one go
       // which seems the most simple and forward solution
       var updateRecordResult = data.updateRecordResult;
       var recordData = updateRecordResult.record;
@@ -1128,7 +1128,7 @@ ONR.ONRDataSource = SC.DataSource.extend({
    },
    
    onDeleteRecordError: function(data){
-      //function to handle ONR error messages for delete
+      //function to handle Thoth error messages for delete
       var deleteRecordError = data.deleteRecordError;
       if(deleteRecordError){
          var errorCode = deleteRecordError.errorCode;

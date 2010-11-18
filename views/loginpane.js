@@ -1,4 +1,4 @@
-ONR.LoginPane = SC.SheetPane.extend({
+ThothSC.LoginPane = SC.SheetPane.extend({
 
    dataSource: null,
   

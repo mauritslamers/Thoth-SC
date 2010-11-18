@@ -1,18 +1,18 @@
-sc_require('data_sources/ONRDataSource');
+sc_require('data_sources/DataSource');
 
-ONR.ONRXHRPollingDataSource = ONR.ONRDataSource.extend({
+ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
    
-   ONRRESTAuthURL: '/auth',
+   ThothRESTAuthURL: '/auth',
    
-   ONRURL: '/socket.io/xhr-polling',
+   ThothURL: '/socket.io/xhr-polling',
    
    authenticationPane: false,
    
    send: function(data){
       // check whether
-      console.log('ONRXHRPollingDataSource: trying to send: ' + JSON.stringify(data));
+      console.log('ThothSC XHRPollingDataSource: trying to send: ' + JSON.stringify(data));
 		var dataToSend = 'data='+ encodeURIComponent(JSON.stringify(data));
-		SC.Request.postUrl(this.ONRURL,dataToSend).async()
+		SC.Request.postUrl(this.ThothURL,dataToSend).async()
 		   .header('user',this.user)
 		   .header('sessionkey',this.sessionKey)
 		   .notify(500,this,'.showReconnectMessage',this)
@@ -22,7 +22,7 @@ ONR.ONRXHRPollingDataSource = ONR.ONRDataSource.extend({
 	
 	authRequest: function(user,passwd,passwdIsMD5){
 	   // for XHRPolling an authRequest is a normal REST POST request
-	   var url = this.ONRRESTPrefix? this.ONRRESTPrefix + this.ONRRESTAuthURL : this.ONRRESTAuthURL;
+	   var url = this.ThothRESTPrefix? this.ThothRESTPrefix + this.ThothRESTAuthURL : this.ThothRESTAuthURL;
 	   //var baseRequest = {auth:{ user: user, passwd: passwd, passwdIsMD5: passwdIsMD5}};
 	   var baseRequest = { user: user, passwd: passwd };
 	   this.user = user;
@@ -30,7 +30,7 @@ ONR.ONRXHRPollingDataSource = ONR.ONRDataSource.extend({
       console.log('sending auth request to ' + url);
 		SC.Request.postUrl(url,baseRequest).json()
 		   .notify(this,this._authRequestCallback,this)
-		   .notify(500,this,'._authRequestSendError',this)
+		   .notify(500,this,'_authRequestSendError',this)
 		   .notify(404,this,'_authRequestSendError',this)
 		   .send();
 		// it would be nice to add some extra notifications here, in case the server is down etc...
@@ -59,7 +59,7 @@ ONR.ONRXHRPollingDataSource = ONR.ONRDataSource.extend({
                 console.log('calling authSuccessCallback');
                 dataSource.get('authSuccessCallback')();   
              }
-             else console.log('ONR XHR Polling: no authSuccessCallback set');             
+             else console.log('Thoth XHR Polling: no authSuccessCallback set');             
           }
           else this.showErrorMessage("Login failed", this.showLoginPane);
         }
@@ -95,8 +95,8 @@ ONR.ONRXHRPollingDataSource = ONR.ONRDataSource.extend({
 
 	connect: function(store,callback){
 	   // setup the first connection and set the long polling action in motion
-	   // ONR wants to do auth first, even if auth is not set up...
-	   // this way we can get a session key, so ONR knows who we are...
+	   // Thoth wants to do auth first, even if auth is not set up...
+	   // this way we can get a session key, so Thoth knows who we are...
 	   
 	   this.store = store;
 	   // set up the first connection
@@ -113,7 +113,7 @@ ONR.ONRXHRPollingDataSource = ONR.ONRDataSource.extend({
    _pollingRequest: null,
 
    connectXHRPollingSC: function(){
-      this._pollingRequest = SC.Request.getUrl(this.ONRURL).async()
+      this._pollingRequest = SC.Request.getUrl(this.ThothURL).async()
          .header('user',this.user)
          .header('sessionkey',this.sessionKey)
          .json()

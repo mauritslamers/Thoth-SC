@@ -1,4 +1,4 @@
-ONR.ErrorMessage = SC.SheetPane.extend({
+ThothSC.ErrorMessage = SC.SheetPane.extend({
    
    message: null,
    
