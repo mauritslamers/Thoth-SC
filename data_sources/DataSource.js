@@ -194,8 +194,8 @@ ThothSC.DataSource = SC.DataSource.extend({
                } // end for
             }  
             else console.log("Received information from the server that couldn't be parsed");
-            SC.RunLoop.end();
          } // otherwise ignore
+         SC.RunLoop.end();
       };
    },
    
