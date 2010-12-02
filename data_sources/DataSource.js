@@ -2,7 +2,7 @@ sc_require('views/loginpane');
 sc_require('views/errormessage');
 
 /*
-The OrionNodeRiak Datasource:
+The Thoth Datasource:
 
 An attempt to achieve some goals:
 - only have to define models once
@@ -10,10 +10,9 @@ An attempt to achieve some goals:
 - automatic relations, which can be configured to use junction tables
 - trying to work out the idea that most of the time relations are changed, 
   so try to find the changes and only update those
-- Riak features a nice way to deal with the lost update problem, which is to send back the "offending" records
+- some key-value stores feature a nice way to deal with the lost update problem, which is to send back the "offending" records
   and let the user decide... This is quite a complex feature to implement, but it is absolutely doable.
   While this is a very very interesting feature, the first goal is to implement a "normal" system
-
 
 There are a few conditions that need to be in place to make this work:
 - if relations should be resolved automatically, both the toOne and toMany relations should have a 
@@ -56,6 +55,8 @@ ThothSC.DataSource = SC.DataSource.extend({
    authSuccessCallback: null, 
    
    authenticationPane: null,
+   
+   propertyBasedRetrieval: null,
    
    /*
      ========
@@ -514,10 +515,11 @@ ThothSC.DataSource = SC.DataSource.extend({
             request.fetch.parameters = query.parameters;
          }
          // check on relations and if there are, add them to the request
-         var relationInfo = this._getRelationsArray(rectype);
-         if(relationInfo){
-            request.fetch.relations = relationInfo;
-            numResponses += relationInfo.length;
+         var attributeInfo = this._getAttributes(rectype);
+         if(this.propertyBasedRetrieval) request.fetch.properties = attributeInfo.properties;
+         if(attributeInfo.relations.length > 0){
+           request.fetch.relations = attributeInfo.relations;
+           numResponses += attributeInfo.relations.length;
          }
          // now add the requestCacheInfo
          var requestKey = this._createRequestCacheKey();
@@ -819,6 +821,41 @@ ThothSC.DataSource = SC.DataSource.extend({
    },
    */
    
+  _getAttributes: function(recordType){
+    // function to get all RecordAttributes
+    // it will separate out the relations and return an object: { properties: [], relations: []}
+    var ret = { properties: [], relations: []}, 
+        recType = recordType.prototype,
+        curItem, oppositeRecType, i, keyName;
+    
+    for(i in recType){
+      curItem = recType[i];
+      if(curItem && curItem.kindOf && curItem.kindOf(SC.RecordAttribute)){      
+        if(curItem.kindOf(SC.ManyAttribute)){
+          // get the opposite record type
+          oppositeRecType = curItem.typeClass().prototype;
+          ret.relations.push({ type: 'toMany', bucket: oppositeRecType.bucket, propertyName: i }); 
+        }
+        else {
+          if(curItem.kindOf(SC.SingleAttribute)){
+            oppositeRecType = curItem.typeClass().prototype;
+            var reverse = curItem.reverse;
+            // check whether the reverse is a toMany
+            if(reverse && oppositeRecType[reverse].kindOf(SC.ManyAttribute)){
+              ret.relations.push({ type: 'toOne', bucket: oppositeRecType.bucket, propertyName: i}); 
+            }
+          }
+          else {
+            // just a normal attribute, push to properties
+            keyName = recType.key || i;
+            ret.properties.push({ key: keyName });
+          }
+        } 
+      }
+    }
+    return ret;
+  },
+   
    _getRelationsArray: function(recordType) {
       var ret = [], recType, curItem;
       
@@ -829,6 +866,8 @@ ThothSC.DataSource = SC.DataSource.extend({
          curItem = recType[i];
          //console.log('parsing key ' + i);
          if(curItem && curItem.kindOf && curItem.kindOf(SC.RecordAttribute)){
+           
+            
             if(curItem.kindOf(SC.ManyAttribute)){
                // get the opposite record type
                oppositeRecType = curItem.typeClass().prototype;
@@ -870,7 +909,9 @@ ThothSC.DataSource = SC.DataSource.extend({
       // update the recordType cache in case we get an update in the future
       if(!this._recordTypeCache[bucket]) this._recordTypeCache[bucket] = recType;
       
-      var relations = this._getRelationsArray(recType);
+      var attrs = this._getAttributes(recType);
+      var relations = attrs.relations;
+      var properties = this.propertyBasedRetrieval? attrs.properties: null;
       var recordId = id? id: store.idFor(storeKey);
       // do we need a requestCache? Yes we do, as we need the store info, and in case of relations
       // we will receive multiple responses
@@ -888,6 +929,7 @@ ThothSC.DataSource = SC.DataSource.extend({
          refreshRecord: { 
             bucket: bucket, 
             key: recordId, 
+            properties: properties,
             relations: relations, 
             returnData: { requestCacheKey: requestCacheKey }
          }
@@ -976,7 +1018,9 @@ ThothSC.DataSource = SC.DataSource.extend({
       var recType = store.recordTypeFor(storeKey);
       var dataToSend = store.readDataHash(storeKey);
       var bucket = recType.prototype.bucket;
-      var relations = this._getRelationsArray(recType);
+      var attrs = this._getAttributes(recType);
+      var relations = attrs.relations;
+      var properties = this.propertyBasedRetrieval? attrs.properties: null;
       var currel, curRelData;
       if(relations){ // in case there are relations
          // we have to process the data to remove the relation stuff
@@ -993,7 +1037,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       var requestCacheKey = this._createRequestCacheKey();
       this._requestCache[requestCacheKey] = { store: store, storeKey: storeKey, params: params };
       var returnData = { requestCacheKey: requestCacheKey };
-      var request = { createRecord: { bucket: bucket, record: dataToSend, relations: relations, returnData: returnData }};
+      var request = { createRecord: { bucket: bucket, record: dataToSend, relations: relations, properties: properties, returnData: returnData }};
       this.send(request);
       return YES;
    },
@@ -1043,7 +1087,9 @@ ThothSC.DataSource = SC.DataSource.extend({
       var dataToSend = store.readDataHash(storeKey);
       var bucket = recType.prototype.bucket;
       var key = dataToSend.key;
-      var relations = this._getRelationsArray(recType);
+      var attrs = this._getAttributes(recType);
+      var relations = attrs.relations,
+          properties = this.propertyBasedRetrieval? attrs.properties: null;
       var currel, curRelData;
       if(relations){ // in case there are relations
           // we have to process the data to remove the relation stuff
@@ -1061,7 +1107,7 @@ ThothSC.DataSource = SC.DataSource.extend({
        var requestCacheKey = this._createRequestCacheKey();
        this._requestCache[requestCacheKey] = { store: store, storeKey: storeKey, params: params, recordKey: key, numResponses: numResponses };
        var returnData = { requestCacheKey: requestCacheKey };
-       var request = { updateRecord: { bucket: bucket, key: key, record: dataToSend, relations: relations, returnData: returnData }};
+       var request = { updateRecord: { bucket: bucket, key: key, record: dataToSend, properties: properties, relations: relations, returnData: returnData }};
        this.send(request);
        return YES;
    },   
@@ -1109,7 +1155,9 @@ ThothSC.DataSource = SC.DataSource.extend({
       var key = recordData.key;
       var returnData = { requestCacheKey: requestCacheKey};
       this._requestCache[requestCacheKey] = { store: store, storeKey: storeKey, params: params };
-      var relations = this._getRelationsArray(recType);
+      var attrs = this._getAttributes(recType);
+      var relations = attrs.relations;
+      var properties = this.propertyBasedRetrieval? attrs.properties: null;
       var currel, curRelData;
       if(relations){ // in case there are relations
          // we have to process the data to remove the relation stuff
@@ -1122,7 +1170,7 @@ ThothSC.DataSource = SC.DataSource.extend({
          }
          //relations separated from the record data         
       }
-      var request = { deleteRecord: { bucket: bucket, key: key, record: recordData, relations: relations }};
+      var request = { deleteRecord: { bucket: bucket, key: key, record: recordData, properties: properties, relations: relations }};
       this.send(request);
       return YES;
    },
