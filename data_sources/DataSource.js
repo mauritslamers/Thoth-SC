@@ -826,7 +826,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     // it will separate out the relations and return an object: { properties: [], relations: []}
     var ret = { properties: [], relations: []}, 
         recType = recordType.prototype,
-        curItem, oppositeRecType, i, keyName;
+        curItem, oppositeRecType, i, keyName, typeName;
     
     for(i in recType){
       curItem = recType[i];
@@ -847,12 +847,28 @@ ThothSC.DataSource = SC.DataSource.extend({
           }
           else {
             // just a normal attribute, push to properties
-            keyName = recType.key || i;
-            ret.properties.push({ key: keyName });
+            keyName = recType[i].key || i;
+            typeName = this._getDataType(recType[i].type);
+            ret.properties.push({key: keyName, type: typeName });
           }
         } 
       }
     }
+    return ret;
+  },
+   
+  _getDataType: function(type){
+    var ret = "";
+    if(type == String) ret = "String";
+    if(type == Array) ret = "Array";
+    if(type == Object) ret = "Object";
+    if(type == Number) ret = "Number";
+    if(type == Math) ret = "Math";
+    if(type == Date) ret = "Date";
+    if(type == Boolean) ret = "Boolean";
+    if(type == RegExp) ret = "RegExp";
+    //console.log('data type detected is: ' + ret);
+    //if(ret === "") ret = type.toString();
     return ret;
   },
    
