@@ -434,8 +434,9 @@ ThothSC.DataSource = SC.DataSource.extend({
    */
    
    loadRecord: function(store,recordType,storeKey,dataHash,isComplete) {
-      // copy this behaviour from dataSource did complete and pushRetrieve
-      var id = dataHash.id || dataHash.key; // when id doesn't exist, try key
+     // copy this behaviour from dataSource did complete and pushRetrieve
+     var primKey = recordType.prototype.primaryKey;
+     var id = dataHash[primKey] || dataHash.id || dataHash.key; // when id doesn't exist, try key
       var status, K = SC.Record;
       if(id){
          if(storeKey === undefined){
