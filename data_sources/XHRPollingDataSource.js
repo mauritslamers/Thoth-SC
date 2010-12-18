@@ -2,6 +2,8 @@ sc_require('data_sources/DataSource');
 
 ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
    
+   ThothRESTPrefix: '/thoth',
+   
    ThothRESTAuthURL: '/auth',
    
    ThothURL: '/socket.io/xhr-polling',
