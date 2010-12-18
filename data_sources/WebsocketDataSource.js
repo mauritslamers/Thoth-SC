@@ -2,10 +2,6 @@ sc_require('data_sources/DataSource');
 
 ThothSC.WebSocketDataSource = ThothSC.DataSource.extend({
    
-   ThothHost: 'localhost',
-   
-   ThothPort: '8080',
-   
    ThothURL: '/socket.io/websocket',
    
    _webSocket: null, // the websocket object will be stored here
