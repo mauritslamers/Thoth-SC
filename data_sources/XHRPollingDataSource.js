@@ -2,9 +2,7 @@ sc_require('data_sources/DataSource');
 
 ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
    
-   ThothRESTPrefix: '/thoth',
-   
-   ThothRESTAuthURL: '/auth',
+   ThothAuthURL: '/auth',
    
    ThothURL: '/socket.io/xhr-polling',
    
@@ -14,7 +12,7 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
       // check whether
       console.log('ThothSC XHRPollingDataSource: trying to send: ' + JSON.stringify(data));
 		var dataToSend = 'data='+ encodeURIComponent(JSON.stringify(data));
-		SC.Request.postUrl(this.ThothURL,dataToSend).async()
+		SC.Request.postUrl(this.get('actualThothURL'),dataToSend).async()
 		   .header('user',this.user)
 		   .header('sessionkey',this.sessionKey)
 		   .notify(500,this,'.showReconnectMessage',this)
@@ -22,9 +20,16 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 		   .send();
 	},
 	
+	authURL: function(){
+	  var authurl = this.get('ThothAuthURL'),
+	      pref = this.get('ThothURLPrefix'),
+	      ret = pref? [pref,authurl].join(""): authurl;
+	  return ret;
+	}.property('ThothAuthURL','ThothURLPrefix').cacheable(),
+	
 	authRequest: function(user,passwd,passwdIsMD5){
 	   // for XHRPolling an authRequest is a normal REST POST request
-	   var url = this.ThothRESTPrefix? this.ThothRESTPrefix + this.ThothRESTAuthURL : this.ThothRESTAuthURL;
+	   var url = this.get('authURL');
 	   //var baseRequest = {auth:{ user: user, passwd: passwd, passwdIsMD5: passwdIsMD5}};
 	   var baseRequest = { user: user, passwd: passwd };
 	   this.user = user;
@@ -115,7 +120,7 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
    _pollingRequest: null,
 
    connectXHRPollingSC: function(){
-      this._pollingRequest = SC.Request.getUrl(this.ThothURL).async()
+      this._pollingRequest = SC.Request.getUrl(this.get('actualThothURL')).async()
          .header('user',this.user)
          .header('sessionkey',this.sessionKey)
          .json()

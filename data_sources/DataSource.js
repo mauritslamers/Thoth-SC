@@ -50,7 +50,7 @@ ThothSC.DataSource = SC.DataSource.extend({
    
    ThothURL: null,
    
-   ThothRESTPrefix: null,
+   ThothURLPrefix: null, 
    
    authSuccessCallback: null, 
    
@@ -69,6 +69,11 @@ ThothSC.DataSource = SC.DataSource.extend({
    sessionKey: '',
    
    store: null, // a reference to the store where the (forced) updates need to be sent
+
+   init: function(){ // constructor
+     sc_super();
+     this.ThothURLPrefix = '/thoth';
+   },
          
    connect: function(store,callback){ // we need the store to direct the push traffic to
       throw("Thoth Datasource connect: You are using the basic data source without traffic specification...");
@@ -85,6 +90,14 @@ ThothSC.DataSource = SC.DataSource.extend({
    getConnectUrl: function(){
       return [this.getHost(),this.ThothURL].join("");   
    },
+   
+   actualThothURL: function(){
+     var pref = this.get('ThothURLPrefix'),
+         url = this.get('ThothURL'),
+         ret = pref? [pref,url].join(""): url;
+
+     return ret;
+   }.property('ThothURLPrefix','ThothURL').cacheable(),
    
    
    /*
