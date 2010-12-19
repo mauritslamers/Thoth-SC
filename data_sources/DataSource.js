@@ -88,7 +88,11 @@ ThothSC.DataSource = SC.DataSource.extend({
    },
    
    getConnectUrl: function(){
-      return [this.getHost(),this.ThothURL].join("");   
+     var host = this.getHost(),
+         pref = this.ThothURLPrefix,
+         thothurl = this.ThothURL,
+         url = pref? [host,pref,thothurl].join(""): [host,thothurl].join("");
+     return url;
    },
    
    actualThothURL: function(){
