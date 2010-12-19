@@ -4,6 +4,8 @@ ThothSC.WebSocketDataSource = ThothSC.DataSource.extend({
    
    ThothURL: '/socket.io/websocket',
    
+   shouldReconnect: YES,
+   
    _webSocket: null, // the websocket object will be stored here
    
    connect: function(store,callback){ // we need the store to direct the push traffic to
@@ -23,6 +25,25 @@ ThothSC.WebSocketDataSource = ThothSC.DataSource.extend({
          this._webSocket.send(msg); // cannot return anything as the calling function is most likely GC'ed already
       }
       else return false;
+   },
+   
+   createOnCloseHandler: function(event){
+      var me = this;
+      return function(event){
+         console.log('Websocket: MyonClose: ' + event.toString());
+         // don't throw away existing user and session information
+         me.isConnected = false;
+         if(me.shouldReconnect){
+           if(me.sendAuthRequest){
+             console.log('WebSocket: trying to reconnect...');
+             me.connect(null,function(){
+               // reauth using auth closure
+               me.sendAuthRequest();
+             });
+           }
+           else console.log('WS Connection closed, you need to reauth to continue...');
+         } 
+      };      
    }
    
 });

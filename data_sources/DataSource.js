@@ -233,14 +233,17 @@ ThothSC.DataSource = SC.DataSource.extend({
       };      
    },
    
+   sendAuthRequest: null, // a closure function to save the username and passwd, in case of reauth
+   
    authRequest: function(user,passwd,passwdIsMD5){
       var me = this;
+      // create 
       var sendAuthRequest = function(){
          var baseRequest = {auth:{ user: user, passwd: passwd, passwdIsMD5: passwdIsMD5}};
          if(me.sessionKey) baseRequest.auth.sessionKey = me.sessionKey; // resume the session if possible
          me.send(baseRequest);
       };
-      
+      this.sendAuthRequest = sendAuthRequest;
       if(!this.isConnected){
          this.connect(me.store,sendAuthRequest);
       }
