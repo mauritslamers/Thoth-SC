@@ -537,6 +537,7 @@ ThothSC.DataSource = SC.DataSource.extend({
          }
          // check on relations and if there are, add them to the request
          var attributeInfo = this._getAttributes(rectype);
+         request.fetch.primaryKey = attributeInfo.primaryKey;
          if(this.propertyBasedRetrieval) request.fetch.properties = attributeInfo.properties;
          if(attributeInfo.relations.length > 0){
            request.fetch.relations = attributeInfo.relations;
@@ -743,7 +744,7 @@ ThothSC.DataSource = SC.DataSource.extend({
    
    
    // something we need to do is to create a cache of bucket and recordTypes.
-   // OrionNodeRiak will only push data for records or queries fetched earlier...
+   // Thoth will only push data for records or queries fetched earlier...
    
    
    /*
@@ -820,33 +821,11 @@ ThothSC.DataSource = SC.DataSource.extend({
       return ret.join('');
    },
    
-   /* not used...
-   _getRelations: function(recordType){
-      var many = [], one = [],
-          curItem,
-          recType;
-      
-      //recType = recordType.isClass? recordType: recordType.prototype; // get the class in case of an instance of the model
-      recType = recordType.prototype;
-      for(var i in recType){
-         curItem = recType[i];
-         if(curItem && curItem.kindOf && curItem.kindOf(SC.RecordAttribute)){
-            if(curItem.kindOf(SC.ManyAttribute)) many.push(i);
-            if(curItem.kindOf(SC.SingleAttribute)) one.push(i);
-         }
-      }
-      if((many.length > 0) || (one.length > 0)){
-         return { many: many, one: one };
-      }
-      else return NO; // no relations found
-   },
-   */
-   
   _getAttributes: function(recordType){
     // function to get all RecordAttributes
     // it will separate out the relations and return an object: { properties: [], relations: []}
-    var ret = { properties: [], relations: []}, 
-        recType = recordType.prototype,
+    var recType = recordType.prototype,
+        ret = { properties: [], relations: [], primaryKey: recType.primaryKey }, 
         curItem, oppositeRecType, i, keyName, typeName;
     
     for(i in recType){
@@ -855,7 +834,11 @@ ThothSC.DataSource = SC.DataSource.extend({
         if(curItem.kindOf(SC.ManyAttribute)){
           // get the opposite record type
           oppositeRecType = curItem.typeClass().prototype;
-          ret.relations.push({ type: 'toMany', bucket: oppositeRecType.bucket, propertyName: i }); 
+          ret.relations.push({ 
+            type: 'toMany', 
+            bucket: oppositeRecType.bucket, 
+            primaryKey: oppositeRecType.primaryKey,
+            propertyName: i }); 
         }
         else {
           if(curItem.kindOf(SC.SingleAttribute)){
@@ -863,7 +846,11 @@ ThothSC.DataSource = SC.DataSource.extend({
             var reverse = curItem.reverse;
             // check whether the reverse is a toMany
             if(reverse && oppositeRecType[reverse].kindOf(SC.ManyAttribute)){
-              ret.relations.push({ type: 'toOne', bucket: oppositeRecType.bucket, propertyName: i}); 
+              ret.relations.push({ 
+                type: 'toOne', 
+                bucket: oppositeRecType.bucket, 
+                primaryKey: oppositeRecType.primaryKey,
+                propertyName: i}); 
             }
           }
           else {
@@ -903,8 +890,6 @@ ThothSC.DataSource = SC.DataSource.extend({
          curItem = recType[i];
          //console.log('parsing key ' + i);
          if(curItem && curItem.kindOf && curItem.kindOf(SC.RecordAttribute)){
-           
-            
             if(curItem.kindOf(SC.ManyAttribute)){
                // get the opposite record type
                oppositeRecType = curItem.typeClass().prototype;
@@ -966,6 +951,7 @@ ThothSC.DataSource = SC.DataSource.extend({
          refreshRecord: { 
             bucket: bucket, 
             key: recordId, 
+            primaryKey: attrs.primaryKey,
             properties: properties,
             relations: relations, 
             returnData: { requestCacheKey: requestCacheKey }
@@ -1074,7 +1060,13 @@ ThothSC.DataSource = SC.DataSource.extend({
       var requestCacheKey = this._createRequestCacheKey();
       this._requestCache[requestCacheKey] = { store: store, storeKey: storeKey, params: params };
       var returnData = { requestCacheKey: requestCacheKey };
-      var request = { createRecord: { bucket: bucket, record: dataToSend, relations: relations, properties: properties, returnData: returnData }};
+      var request = { createRecord: 
+          { bucket: bucket, 
+            primaryKey: attrs.primaryKey,
+            record: dataToSend, 
+            relations: relations, 
+            properties: properties, 
+            returnData: returnData }};
       this.send(request);
       return YES;
    },
@@ -1144,7 +1136,14 @@ ThothSC.DataSource = SC.DataSource.extend({
        var requestCacheKey = this._createRequestCacheKey();
        this._requestCache[requestCacheKey] = { store: store, storeKey: storeKey, params: params, recordKey: key, numResponses: numResponses };
        var returnData = { requestCacheKey: requestCacheKey };
-       var request = { updateRecord: { bucket: bucket, key: key, record: dataToSend, properties: properties, relations: relations, returnData: returnData }};
+       var request = { updateRecord: { 
+         bucket: bucket, 
+         key: key, 
+         primaryKey: attrs.primaryKey,
+         record: dataToSend, 
+         properties: properties, 
+         relations: relations, 
+         returnData: returnData }};
        this.send(request);
        return YES;
    },   
@@ -1207,7 +1206,13 @@ ThothSC.DataSource = SC.DataSource.extend({
          }
          //relations separated from the record data         
       }
-      var request = { deleteRecord: { bucket: bucket, key: key, record: recordData, properties: properties, relations: relations }};
+      var request = { deleteRecord: { 
+        bucket: bucket, 
+        key: key, 
+        primaryKey: attrs.primaryKey, 
+        record: recordData, 
+        properties: properties, 
+        relations: relations }};
       this.send(request);
       return YES;
    },
