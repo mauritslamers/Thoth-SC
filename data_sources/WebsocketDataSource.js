@@ -16,6 +16,7 @@ ThothSC.WebSocketDataSource = ThothSC.DataSource.extend({
       this._webSocket.onmessage = this.createOnMessageHandler();
       this._webSocket.onerror = this.createOnErrorHandler();
       this._webSocket.onclose = this.createOnCloseHandler();
+      this.store = store;
    },
    
    send: function(val){
