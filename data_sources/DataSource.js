@@ -456,7 +456,7 @@ ThothSC.DataSource = SC.DataSource.extend({
    loadRecord: function(store,recordType,storeKey,dataHash,isComplete) {
      // copy this behaviour from dataSource did complete and pushRetrieve
      var primKey = recordType.prototype.primaryKey;
-     var id = dataHash[primKey] || dataHash.id || dataHash.key; // when id doesn't exist, try key
+     var id = dataHash[primKey] || dataHash.key || dataHash.id; // when id doesn't exist, try key
       var status, K = SC.Record;
       if(id){
          if(storeKey === undefined){
@@ -596,9 +596,10 @@ ThothSC.DataSource = SC.DataSource.extend({
          this._requestCache[requestKey].recordKeys = {};                  
       }
       var currec,curreckey,storeKey,storeKeys = [];
+      var primKey = recordType.prototype.primaryKey;
       for(var i=0,len=records.length;i<len;i++){
          currec = records[i];
-         curreckey = currec.key;
+         curreckey = currec[primKey] || currec.key || currec.id ;
          storeKey = this.loadRecord(store,recordType,undefined,currec,isComplete);
          storeKeys.push(storeKey);
          if(!isComplete){ // if not complete, store the record info
