@@ -1100,7 +1100,9 @@ ThothSC.DataSource = SC.DataSource.extend({
       var store = requestCache.store;
       var storeKey = requestCache.storeKey;
       var recordData = createRecordResult.record;
-      store.dataSourceDidComplete(storeKey,recordData);
+      var primKey = store.recordTypeFor(storeKey).prototype.primaryKey;
+      var primKeyValue = recordData[primKey];
+      store.dataSourceDidComplete(storeKey,recordData,primKeyValue); // set the primaryKey value for the store!!
       // we can destroy the requestCache immediately because relations are inside the record data already, 
       // we don't even have to parse them ...
       delete this._requestCache[requestCacheKey];
