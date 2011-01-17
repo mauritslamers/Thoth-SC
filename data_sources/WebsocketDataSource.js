@@ -23,6 +23,7 @@ ThothSC.WebSocketDataSource = ThothSC.DataSource.extend({
    
    send: function(val){
       if(this._webSocket && val){
+         this._reconnectCount = 0; // reset the counter when being able to send something
          var msg = JSON.stringify(val);
          console.log('Trying to send message: ' + msg);
          this._webSocket.send(msg); // cannot return anything as the calling function is most likely GC'ed already
@@ -30,9 +31,10 @@ ThothSC.WebSocketDataSource = ThothSC.DataSource.extend({
       else return false;
    },
    
+   _reconnectCount: 0,
+   
    createOnCloseHandler: function(event){
       var me = this;
-      var count = 0;
       return function(event){
          console.log('Websocket: MyonClose: ' + event.toString());
          // don't throw away existing user and session information
@@ -40,8 +42,8 @@ ThothSC.WebSocketDataSource = ThothSC.DataSource.extend({
          if(me.shouldReconnect){
            if(me.sendAuthRequest){
              console.log('WebSocket: trying to reconnect...');
-             count += 1;
-             if(count < me.reconnectAttempts){
+             me._reconnectCount += 1;
+             if(me._reconnectCount < me.reconnectAttempts){
                me.connect(null,function(){
                  // reauth using auth closure
                  me.sendAuthRequest();
