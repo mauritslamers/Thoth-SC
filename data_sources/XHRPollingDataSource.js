@@ -8,6 +8,11 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
    
    authenticationPane: false,
    
+   connect: function(store,callback){
+     this.store = store;
+     callback();
+   },
+   
    send: function(data){
       // check whether
       console.log('ThothSC XHRPollingDataSource: trying to send: ' + JSON.stringify(data));
@@ -64,16 +69,19 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
              // now do the authSuccessCallback
              if(dataSource.authSuccessCallback){
                 console.log('calling authSuccessCallback');
-                dataSource.get('authSuccessCallback')();   
+                dataSource.get('authSuccessCallback')({ role: data.role });   
              }
              else console.log('Thoth XHR Polling: no authSuccessCallback set');             
           }
-          else this.showErrorMessage("Login failed", this.showLoginPane);
+          else {
+            if(dataSource.authErrorCallback) dataSource.get('authErrorCallback')(data.errorMessage);
+            else this.showErrorMessage("Login failed", this.showLoginPane);
+          } 
         }
         if(response.isError) console.log(response);//this.showErrorMessage(response,this.showLoginPane);
     },
    
-   
+   /*
    getRequest: function(xdomain){
 		if ('XDomainRequest' in window && xdomain) return new XDomainRequest();
 		if ('XMLHttpRequest' in window) return new XMLHttpRequest();
@@ -90,14 +98,16 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 
 		return false;
 	},
-	
+	 
 	XHRCheck: function(){
 		try {
 			if (this.getRequest()) return true;
 		} catch(e){}
 		return false;
 	},	
-	
+	 
+	*/
+	 
 	type: 'xhr-polling',
 
 	connect: function(store,callback){
