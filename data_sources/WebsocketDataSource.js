@@ -50,7 +50,7 @@ ThothSC.WebSocketDataSource = ThothSC.DataSource.extend({
                });               
              }
              else {
-               console.log('WebSocket: failed to reconnect after ' + count + ' times. Reconnect by reloading the app?');
+               console.log('WebSocket: failed to reconnect after ' + me._reconnectCount + ' times. Reconnect by reloading the app?');
              }
            }
            else console.log('WS Connection closed, you need to reauth to continue...');
