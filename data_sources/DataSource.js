@@ -262,17 +262,22 @@ ThothSC.DataSource = SC.DataSource.extend({
    onAuthSuccess: function(data){
       // function called when authorisation has been completed successfully
       //console.log('onAuthSuccess called on ' + this);
+      SC.RunLoop.begin();
       this.user = data.user;
       this.sessionKey = data.sessionKey;
       //alert("onAuthSuccess!");
-      this.authSuccessCallback();
+      if(this.authSuccessCallback) this.authSuccessCallback();
+      SC.RunLoop.end();
    },
    
    onAuthError: function(data){
+     SC.RunLoop.begin();
       // function called when authorisation has gone awry for some reason
       var errorMsg = data.errorMsg;
       console.log('Authentication error: ' + errorMsg);
-      this.showErrorMessage(errorMsg,this.showLoginPane);
+      //this.showErrorMessage(errorMsg,this.showLoginPane);
+      if(this.authErrorCallback) this.authErrorCallback();
+      SC.RunLoop.end();
    },
    
    onLogoutSuccess: function(data){
