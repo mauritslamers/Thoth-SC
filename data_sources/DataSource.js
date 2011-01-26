@@ -54,6 +54,10 @@ ThothSC.DataSource = SC.DataSource.extend({
    
    authSuccessCallback: null, 
    
+   authErrorCallback: null,
+   
+   logOutSuccessCallback: null,
+      
    authenticationPane: null,
    
    propertyBasedRetrieval: null,
@@ -258,6 +262,9 @@ ThothSC.DataSource = SC.DataSource.extend({
      this.send({ createRecord: { bucket: bucket, record: data}}); 
    },
    
+   logoutRequest: function(){
+     this.send({ logOut: { user: this.user }});
+   },
    
    onAuthSuccess: function(data){
       // function called when authorisation has been completed successfully
@@ -283,8 +290,11 @@ ThothSC.DataSource = SC.DataSource.extend({
    onLogoutSuccess: function(data){
       // function called when logout has been successfull
       // remove user and session information
-      this.user = undefined;
-      this.sessionKey = undefined; 
+      SC.RunLoop.begin();
+      this.user = null;
+      this.sessionKey = null; 
+      if(this.logOutSuccessCallback) this.logOutSuccessCallback();
+      SC.RunLoop.end();
    },
    
    /*
