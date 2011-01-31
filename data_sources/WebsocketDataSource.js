@@ -21,6 +21,10 @@ ThothSC.WebSocketDataSource = ThothSC.DataSource.extend({
       this.store = store;
    },
    
+   disconnect: function(){
+     if(this._webSocket) this._webSocket.close();
+   },
+   
    send: function(val){
       if(this._webSocket && val){
          this._reconnectCount = 0; // reset the counter when being able to send something
@@ -29,6 +33,20 @@ ThothSC.WebSocketDataSource = ThothSC.DataSource.extend({
          this._webSocket.send(msg); // cannot return anything as the calling function is most likely GC'ed already
       }
       else return false;
+   },
+   
+   isLoggingOut: null,
+   
+   onLogoutSuccess: function(data){
+      // function called when logout has been successfull
+      // remove user and session information
+      SC.RunLoop.begin();
+      this.user = null;
+      this.sessionKey = null; 
+      this.isLoggingOut = true;
+      this.disconnect();
+      if(this.logOutSuccessCallback) this.logOutSuccessCallback();
+      SC.RunLoop.end();
    },
    
    _reconnectCount: 0,
@@ -40,7 +58,7 @@ ThothSC.WebSocketDataSource = ThothSC.DataSource.extend({
          // don't throw away existing user and session information
          me.isConnected = false;
          if(me.shouldReconnect){
-           if(me.sendAuthRequest){
+           if(me.sendAuthRequest && !me.isLoggingOut){
              console.log('WebSocket: trying to reconnect...');
              me._reconnectCount += 1;
              if(me._reconnectCount < me.reconnectAttempts){
@@ -54,7 +72,8 @@ ThothSC.WebSocketDataSource = ThothSC.DataSource.extend({
              }
            }
            else console.log('WS Connection closed, you need to reauth to continue...');
-         } 
+         }
+         me.isLoggingOut = null; 
       };      
    }
    
