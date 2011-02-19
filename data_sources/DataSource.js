@@ -631,19 +631,21 @@ ThothSC.DataSource = SC.DataSource.extend({
    
    onFetchError: function(data){
       //function to handle Thoth error messages for fetch
-      var fetchError = data.fetchError;
+      var fetchError = data.fetchError,
+          errorCode, requestCacheKey, curRequestData, message,
+          query, store;
+          
       if(fetchError){
-         var errorCode = fetchError.errorCode;
-         var requestKey = fetchError.requestData.requestKey;
-         var curRequestData = this._requestCache[requestKey];
-         var message;
+         errorCode = fetchError.errorCode;
+         requestCacheKey = fetchError.returnData.requestCacheKey;
+         curRequestData = this._requestCache[requestCacheKey];
          switch(errorCode){
             case 0: message = "The policy settings on the server don't allow you to fetch these records"; break;
          }
-         var query = curRequestData.query;
-         var store = curRequestData.store;
+         query = curRequestData.query;
+         store = curRequestData.store;
          store.dataSourceDidErrorQuery(query);
-         delete this._requestData[requestKey];
+         delete this._requestData[requestCacheKey];
          this.showErrorMessage(message);
       }
    },
@@ -979,19 +981,21 @@ ThothSC.DataSource = SC.DataSource.extend({
    
    onRefreshRecordError: function(data){
       //function to handle Thoth error messages for fetch
-      var refreshRecordError = data.refreshRecordError;
+      var refreshRecordError = data.refreshRecordError,
+          errorCode, requestCacheKey, curRequestData, message,
+          storeKey, store;
+      
       if(refreshRecordError){
-         var errorCode = refreshRecordError.errorCode;
-         var requestKey = refreshRecordError.requestData.requestKey;
-         var curRequestData = this._requestCache[requestKey];
-         var message;
+         errorCode = refreshRecordError.errorCode;
+         requestCacheKey = refreshRecordError.returnData.requestCacheKey;
+         curRequestData = this._requestCache[requestCacheKey];
          switch(errorCode){
             case 0: message = "The policy settings on the server don't allow you to refresh this record"; break;
          }
-         var storeKey = curRequestData.storeKey;
-         var store = curRequestData.store;
+         storeKey = curRequestData.storeKey;
+         store = curRequestData.store;
          store.dataSourceDidError(storeKey);
-         delete this._requestData[requestKey];
+         delete this._requestData[requestCacheKey];
          this.showErrorMessage(message);
       }
    },
@@ -1089,19 +1093,21 @@ ThothSC.DataSource = SC.DataSource.extend({
    
    onCreateRecordError: function(data){
       //function to handle Thoth error messages for fetch
-      var createRecordError = data.createRecordError;
+      var createRecordError = data.createRecordError,
+          errorCode, requestCacheKey, curRequestData, message,
+          storeKey, store;
+      
       if(createRecordError){
-         var errorCode = createRecordError.errorCode;
-         var requestKey = createRecordError.requestData.requestKey;
-         var curRequestData = this._requestCache[requestKey];
-         var message;
+         errorCode = createRecordError.errorCode;
+         requestCacheKey = createRecordError.returnData.requestCacheKey;
+         curRequestData = this._requestCache[requestCacheKey];
          switch(errorCode){
             case 0: message = "The policy settings on the server don't allow you to create this record"; break;
          }
-         var storeKey = curRequestData.storeKey;
-         var store = curRequestData.store;
+         storeKey = curRequestData.storeKey;
+         store = curRequestData.store;
          store.dataSourceDidError(storeKey);
-         delete this._requestData[requestKey];
+         delete this._requestData[requestCacheKey];
          this.showErrorMessage(message);
       }
    },
@@ -1168,19 +1174,22 @@ ThothSC.DataSource = SC.DataSource.extend({
 
    onUpdateRecordError: function(data){
       //function to handle Thoth error messages for update
-      var updateRecordError = data.updateRecordError;
+      var updateRecordError = data.updateRecordError,
+          errorCode, requestCacheKey, curRequestData, message,
+          storeKey, store;
+          
       if(updateRecordError){
-         var errorCode = updateRecordError.errorCode;
-         var requestKey = updateRecordError.requestData.requestKey;
-         var curRequestData = this._requestCache[requestKey];
-         var message;
+         errorCode = updateRecordError.errorCode;
+         requestCacheKey = updateRecordError.returnData.requestCacheKey;
+         curRequestData = this._requestCache[requestCacheKey];
          switch(errorCode){
             case 0: message = "The policy settings on the server don't allow you to update this record"; break;
+            case 1: message = "There has been a data inconsistency between the server and your application."; break;
          }
-         var storeKey = curRequestData.storeKey;
-         var store = curRequestData.store;
+         storeKey = curRequestData.storeKey;
+         store = curRequestData.store;
          store.dataSourceDidError(storeKey);
-         delete this._requestData[requestKey];
+         delete this._requestCache[requestCacheKey];
          this.showErrorMessage(message);
       }
    },
@@ -1240,16 +1249,17 @@ ThothSC.DataSource = SC.DataSource.extend({
       var deleteRecordError = data.deleteRecordError;
       if(deleteRecordError){
          var errorCode = deleteRecordError.errorCode;
-         var requestKey = deleteRecordError.requestData.requestKey;
-         var curRequestData = this._requestCache[requestKey];
+         var requestCacheKey = deleteRecordError.returnData.requestCacheKey;
+         var curRequestData = this._requestCache[requestCacheKey];
          var message;
          switch(errorCode){
             case 0: message = "The policy settings on the server don't allow you to delete this record"; break;
+            case 1: message = "There has been a data inconsistency between the server and your application."; break;            
          }
          var storeKey = curRequestData.storeKey;
          var store = curRequestData.store;
          store.dataSourceDidError(storeKey);
-         delete this._requestData[requestKey];
+         delete this._requestCache[requestCacheKey];
          this.showErrorMessage(message);
       }
    },
