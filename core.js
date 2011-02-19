@@ -11,11 +11,11 @@
   @extends SC.Object
 */
 ThothSC = SC.Object.create(
-  /** @scope Onr.prototype */ {
+  /** @scope Thoth.prototype */ {
 
   NAMESPACE: 'ThothSC',
-  VERSION: '0.1.0'
-
-  // TODO: Add global constants or singleton objects needed by your app here.
-
+  VERSION: '0.1.0',
+  
+  store: null,
+  
 }) ;

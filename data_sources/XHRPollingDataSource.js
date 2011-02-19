@@ -15,11 +15,14 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
    
    send: function(data){
       // check whether
+      var user = this.userData? this.userData.user(this.userData.key()): '';
+      var sessionKey = this.userData? this.userData.sessionkey(this.userData.key()): '';
+      
       console.log('ThothSC XHRPollingDataSource: trying to send: ' + JSON.stringify(data));
 		var dataToSend = 'data='+ encodeURIComponent(JSON.stringify(data));
 		SC.Request.postUrl(this.get('actualThothURL'),dataToSend).async()
-		   .header('user',this.user)
-		   .header('sessionkey',this.sessionKey)
+		   .header('user',user)
+		   .header('sessionkey',sessionKey)
 		   .notify(500,this,'.showReconnectMessage',this)
 		   .notify(404,this,'showReconnectMessage',this)
 		   .send();
@@ -38,10 +41,10 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 	   //var baseRequest = {auth:{ user: user, passwd: passwd, passwdIsMD5: passwdIsMD5}};
 	   var baseRequest = { user: user, passwd: passwd };
 	   this.user = user;
-      if(this.sessionKey) baseRequest.sessionKey = this.sessionKey; // resume the session if possible
+      if(this.userData && this.userData.isAuthenticated()) baseRequest.sessionKey = this.userData.sessionKey(this.userData.key()); // resume the session if possible
       console.log('sending auth request to ' + url);
 		SC.Request.postUrl(url,baseRequest).json()
-		   .notify(this,this._authRequestCallback,this)
+		   .notify(this,this._authRequestCallback,this,user)
 		   .notify(500,this,'_authRequestSendError',this)
 		   .notify(404,this,'_authRequestSendError',this)
 		   .send();
@@ -52,7 +55,7 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
       this.showErrorMessage("No connection to the server",this.showLoginPane);
    },
    
-   _authRequestCallback: function(response, dataSource){
+   _authRequestCallback: function(response, dataSource,user){
        console.log('response from the auth request: ' + response);
        if (SC.ok(response)) {
           //var cookie = document.cookie;
@@ -61,7 +64,7 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
           var sessionKey = data.sessionCookie;
           if(sessionKey){
              //console.log("sessionKey received");
-             this.sessionKey = sessionKey;
+             this.userData = ThothSC.userDataCreator({ user: user, sessionKey: sessionKey, role: data.role });
              this.isConnected = YES;
              this.isAuthenticated = YES;
              // now do the setup of the XHRPolling
@@ -130,9 +133,16 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
    _pollingRequest: null,
 
    connectXHRPollingSC: function(){
-      this._pollingRequest = SC.Request.getUrl(this.get('actualThothURL')).async()
-         .header('user',this.user)
-         .header('sessionkey',this.sessionKey)
+     
+     var user = "", sessionKey = "";
+     if(this.userData && this.userData.isAuthenticated()){
+       user = this.userData.user(this.userData.key());
+       sessionKey = this.userData.sessionKey(this.userData.key());
+     }
+
+     this._pollingRequest = SC.Request.getUrl(this.get('actualThothURL')).async()
+         .header('user',user)
+         .header('sessionkey',sessionKey)
          .json()
          .notify(this,this.handleXHRPolling,this)
          .notify(400,this,'showReconnectMessage',this)

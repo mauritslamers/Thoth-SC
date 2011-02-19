@@ -62,11 +62,9 @@ ThothSC.DataSource = SC.DataSource.extend({
    
    propertyBasedRetrieval: null,
    
-   /*
-     ========
-     WebSocket stuff   
-     ========
-   */
+   /* internal things */
+   
+   userData: null,
    
    user: '',
    
@@ -244,7 +242,8 @@ ThothSC.DataSource = SC.DataSource.extend({
       // create 
       var sendAuthRequest = function(){
          var baseRequest = {auth:{ user: user, passwd: passwd, passwdIsMD5: passwdIsMD5}};
-         if(me.sessionKey) baseRequest.auth.sessionKey = me.sessionKey; // resume the session if possible
+         // resume the session if possible
+         if(me.userData && me.userData.isAuthenticated()) baseRequest.auth.sessionKey = me.userData.sessionKey(me.userData.key()); 
          me.send(baseRequest);
       };
       this.sendAuthRequest = sendAuthRequest;
@@ -263,15 +262,17 @@ ThothSC.DataSource = SC.DataSource.extend({
    },
    
    logoutRequest: function(){
-     this.send({ logOut: { user: this.user }});
+     if(this.userData && this.userData.isAuthenticated()){
+       this.send({ logOut: { user: this.userData.userName(this.userData.key()) }});       
+     }
+     else console.log('Trying to logout, but not logged in');
    },
    
    onAuthSuccess: function(data){
       // function called when authorisation has been completed successfully
       //console.log('onAuthSuccess called on ' + this);
       SC.RunLoop.begin();
-      this.user = data.user;
-      this.sessionKey = data.sessionKey;
+      this.userData = ThothSC.userDataCreator({ user: data.user, sessionKey: data.sessionKey, role: data.role });
       //alert("onAuthSuccess!");
       if(this.authSuccessCallback) this.authSuccessCallback();
       SC.RunLoop.end();
@@ -291,8 +292,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       // function called when logout has been successfull
       // remove user and session information
       SC.RunLoop.begin();
-      this.user = null;
-      this.sessionKey = null; 
+      this.userData = null;
       if(this.logOutSuccessCallback) this.logOutSuccessCallback();
       SC.RunLoop.end();
    },
@@ -539,7 +539,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       }
       if(rectype && query.isRemote()){
          if(!this.isConnected) return NO; // prevent loading stuff when we are not connected 
-         if(!(this.user && this.sessionKey)) return NO; // prevent loading when we are not authenticated
+         if(!(this.userData && this.userData.isAuthenticated())) return NO; // prevent loading when we are not authenticated
          // build the request
          // first do the basic stuff
          var request = { fetch: { bucket: bucket }};

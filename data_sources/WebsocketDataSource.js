@@ -41,8 +41,7 @@ ThothSC.WebSocketDataSource = ThothSC.DataSource.extend({
       // function called when logout has been successfull
       // remove user and session information
       SC.RunLoop.begin();
-      this.user = null;
-      this.sessionKey = null; 
+      this.userData = null;
       this.isLoggingOut = true;
       this.disconnect();
       if(this.logOutSuccessCallback) this.logOutSuccessCallback();
