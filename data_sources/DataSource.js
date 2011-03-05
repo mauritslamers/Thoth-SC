@@ -863,7 +863,7 @@ ThothSC.DataSource = SC.DataSource.extend({
             oppositeRecType = curItem.typeClass().prototype;
             var reverse = curItem.reverse;
             // check whether the reverse is a toMany
-            if(reverse && oppositeRecType[reverse].kindOf(SC.ManyAttribute)){
+            if(reverse && oppositeRecType[reverse] && oppositeRecType[reverse].kindOf(SC.ManyAttribute)){
               ret.relations.push({ 
                 type: 'toOne', 
                 bucket: oppositeRecType.bucket, 
