@@ -1139,8 +1139,8 @@ ThothSC.DataSource = SC.DataSource.extend({
       var recType = store.recordTypeFor(storeKey);
       var dataToSend = store.readDataHash(storeKey);
       var bucket = recType.prototype.bucket;
-      var key = dataToSend.key;
       var attrs = this._getAttributes(recType);
+      var key = dataToSend[attrs.primaryKey] || dataToSend.key;
       var relations = attrs.relations,
           properties = this.propertyBasedRetrieval? attrs.properties: null;
       var currel, curRelData;
@@ -1215,10 +1215,10 @@ ThothSC.DataSource = SC.DataSource.extend({
       var recType = store.recordTypeFor(storeKey);
       var bucket = recType.prototype.bucket;
       var recordData = store.readDataHash(storeKey);
-      var key = recordData.key;
+      var attrs = this._getAttributes(recType);
+      var key = recordData[attrs.primaryKey] || recordData.key;
       var returnData = { requestCacheKey: requestCacheKey};
       this._requestCache[requestCacheKey] = { store: store, storeKey: storeKey, params: params };
-      var attrs = this._getAttributes(recType);
       var relations = attrs.relations;
       var properties = this.propertyBasedRetrieval? attrs.properties: null;
       var currel, curRelData;
