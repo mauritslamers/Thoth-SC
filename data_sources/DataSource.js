@@ -38,74 +38,78 @@ There are a few conditions that need to be in place to make this work:
 
 
 ThothSC.DataSource = SC.DataSource.extend({
-   /*
-     =====
-     User configurable properties
-     =====
-   */
-   
-   ThothHost: null,
-   
-   ThothPort: null,
-   
-   ThothURL: null,
-   
-   ThothURLPrefix: null, 
-   
-   authSuccessCallback: null, 
-   
-   authErrorCallback: null,
-   
-   logOutSuccessCallback: null,
-      
-   authenticationPane: null,
-   
-   propertyBasedRetrieval: null,
-   
-   /* internal things */
-   
-   userData: null,
-   
-   user: '',
-   
-   sessionKey: '',
-   
-   store: null, // a reference to the store where the (forced) updates need to be sent
+	/*
+	=====
+	User configurable properties
+	=====
+	*/
 
-   init: function(){ // constructor
-     sc_super();
-     this.ThothURLPrefix = '/thoth';
-   },
-         
-   connect: function(store,callback){ // we need the store to direct the push traffic to
-      throw("Thoth Datasource connect: You are using the basic data source without traffic specification...");
-   },
-   
-   _isXDomain: function(){
+	ThothHost: null,
+
+	ThothPort: null,
+
+	ThothURL: null,
+
+	ThothURLPrefix: null, 
+
+	authSuccessCallback: null,  //callback for authentication success
+
+	authErrorCallback: null, // callback for authentication errors
+
+	logOutSuccessCallback: null, //callback if the logout was succesfull
+
+	noConnectionCallback: null, //callback if the data source cannot connect
+
+	authenticationPane: null,
+
+	propertyBasedRetrieval: null,
+
+	debug: false,
+
+	/* internal things */
+
+	userData: null,
+
+	user: '', // deprecated
+
+	sessionKey: '', // deprecated for userdata, which is a closure over this data
+
+	store: null, // a reference to the store where the (forced) updates need to be sent
+
+	init: function(){ // constructor
+		sc_super();
+		if(!this.ThothURLPrefix) this.ThothURLPrefix = '/thoth'; // do a default value
+	},
+
+	connect: function(store,callback){ // we need the store to direct the push traffic to
+		throw("Thoth Datasource connect: You are using the basic data source without traffic specification...");
+	},
+
+	_isXDomain: function(){
 		return this.ThothHost !== document.domain; // include the port number??
 	},
-   
-   getHost: function(){
-      return this.ThothPort? [this.ThothHost,this.ThothPort].join(":") : this.ThothHost;
-   },
-   
-   getConnectUrl: function(){
-     var host = this.getHost(),
-         pref = this.ThothURLPrefix,
-         thothurl = this.ThothURL,
-         url = pref? [host,pref,thothurl].join(""): [host,thothurl].join("");
-     return url;
-   },
-   
-   actualThothURL: function(){
-     var pref = this.get('ThothURLPrefix'),
-         url = this.get('ThothURL'),
-         ret = pref? [pref,url].join(""): url;
 
-     return ret;
-   }.property('ThothURLPrefix','ThothURL').cacheable(),
-   
-   
+	getHost: function(){
+		return this.ThothPort? [this.ThothHost,this.ThothPort].join(":") : this.ThothHost;
+	},
+
+	getConnectUrl: function(){
+		var host = this.getHost(),
+		pref = this.ThothURLPrefix,
+		thothurl = this.ThothURL,
+		url = pref? [host,pref,thothurl].join(""): [host,thothurl].join("");
+		return url;
+	},
+
+	actualThothURL: function(){
+		var pref = this.get('ThothURLPrefix'),
+		url = this.get('ThothURL'),
+		ret = pref? [pref,url].join(""): url;
+
+		return ret;
+	}.property('ThothURLPrefix','ThothURL').cacheable(),
+
+
    /*
      Dealing with websockets is a bit different from using the normal
      callbacks such as AJAX requests. Normally you know the callback belonging to your request is the 
@@ -119,183 +123,188 @@ ThothSC.DataSource = SC.DataSource.extend({
      should be stored...
      
    */
-   send: function(val){
-      throw("Thoth Datasource send: You are using the basic data source without traffic specification...");
-   },
-   
-   _pane: null,
-   _paneCallback: null,
-   
-   showErrorMessage: function(message,callback){
-      if(this._pane) return NO; // don't show if a pane already exists
-      var me = this;
-      var sheet = ThothSC.ErrorMessage.create({ message: message, dataSource: this});
-      this._pane = sheet;
-      this._callback = callback;
-      sheet.append();
-   },
-   
-   closeErrorMessage: function(){
-      this._pane.remove();
-      this._pane = null; 
-      var callback = this._callback;
-      if(callback){
-         this._callback = null;
-         callback.call(this);         
-      }
-   },
-   
-   showLoginPane: function(){
-      if(this._pane) return NO; // don't add another pane if there already is one
-      var me = this;
-      var sheet = ThothSC.LoginPane.create({ dataSource: this });
-      
-      this._pane = sheet;
-      sheet.append();
-   },
-   
-   closeLoginPane: function(){
-      this._pane.remove();
-      this._pane = null;
-   },
-   
-   attemptLogin: function(){
-      //var username = this._pane.contentView.usernameInput.value;
-      //var passwd = this._pane.contentView.passwordInput.value;
-      var username = this._pane.username;
-      var passwd = this._pane.passwd;
-      this.closeLoginPane();
-      this.authRequest(username,passwd);
-   },
-   
-   createOnOpenHandler: function(callback){ // to create an onOpen callback
-      var me = this;
-      return function(event){
-         me.isConnected = true;
-         //me.test();
-         callback();
-         return;
-      };
-   },
+	send: function(val){
+		throw("Thoth Datasource send: You are using the basic data source without traffic specification...");
+	},
 
-   createOnMessageHandler: function(){
-      var me = this;
-      return function(event){
-         //console.log('onMessageHandler: called with ' + JSON.stringify(event));
-         // JSON data is expected
-         SC.RunLoop.begin(); // data received in some way, so an event has taken place
-         if(event.data){
-            var messages = (SC.typeOf(event.data) === SC.T_STRING)? JSON.parse(event.data): event.data;
-            //console.log("data in event: " + event.data);
-            if(messages){
-               // check if messages is an array, if not, make one
-               var data = (messages instanceof Array)? messages: [messages]; 
-               for(var i=0, len = data.length;i<len;i++){
-                  var message = data[i];
-                  //console.log('processing message: ' + JSON.stringify(message));
-                  // use special handlers for special messages
-                  // it would be nice if this could be done using a switch, but no clue on that
-                  // should or could be done
-                  // there are a number of messages to intercept, such as authSuccess, authError
-                  if(message.authSuccess){
-                     me.onAuthSuccess.call(me,message.authSuccess);
-                     return;
-                  }
-                  if(message.authError){
-                     me.onAuthError.call(me,message.authError);
-                     return;
-                  } 
-                  if(message.logoutSuccess){
-                     me.onLogoutSuccess.call(me,message.logoutSuccess);
-                     return; 
-                  } 
-                  // assume the others are data messages
-                  me.onDataMessage.call(me,message); //default
-               } // end for
-            }  
-            else console.log("Received information from the server that couldn't be parsed");
-         } // otherwise ignore
-         SC.RunLoop.end();
-      };
-   },
+	_pane: null,
+	_paneCallback: null,
+
+	showErrorMessage: function(message,callback){
+		
+		if(this._pane) return NO; // don't show if a pane already exists
+		var me = this;
+		var sheet = ThothSC.ErrorMessage.create({ message: message, dataSource: this});
+		this._pane = sheet;
+		this._callback = callback;
+		sheet.append();
+	},
+
+	closeErrorMessage: function(){
+		this._pane.remove();
+		this._pane = null; 
+		var callback = this._callback;
+		if(callback){
+			this._callback = null;
+			callback.call(this);         
+		}
+	},
+
+	showLoginPane: function(){
+		if(this._pane) return NO; // don't add another pane if there already is one
+		var me = this;
+		var sheet = ThothSC.LoginPane.create({ dataSource: this });
+
+		this._pane = sheet;
+		sheet.append();
+	},
+
+	closeLoginPane: function(){
+		this._pane.remove();
+		this._pane = null;
+	},
+
+	attemptLogin: function(){
+		//var username = this._pane.contentView.usernameInput.value;
+		//var passwd = this._pane.contentView.passwordInput.value;
+		var username = this._pane.username;
+		var passwd = this._pane.passwd;
+		this.closeLoginPane();
+		this.authRequest(username,passwd);
+	},
+
+	createOnOpenHandler: function(callback){ // to create an onOpen callback
+		var me = this;
+		return function(event){
+			me.isConnected = true;
+			//me.test();
+			callback();
+			return;
+		};
+	},
+
+	createOnMessageHandler: function(){
+		var me = this;
+		var handler = function(event){
+			//console.log('onMessageHandler: called with ' + JSON.stringify(event));
+			// JSON data is expected
+			SC.RunLoop.begin(); // data received in some way, so an event has taken place
+			if(event.data){
+				var messages = (SC.typeOf(event.data) === SC.T_STRING)? JSON.parse(event.data): event.data;
+				//console.log("data in event: " + event.data);
+				if(messages){
+					// check if messages is an array, if not, make one
+					var data = (messages instanceof Array)? messages: [messages]; 
+					for(var i=0, len = data.length;i<len;i++){
+						var message = data[i];
+						//console.log('processing message: ' + JSON.stringify(message));
+						// use special handlers for special messages
+						// it would be nice if this could be done using a switch, but no clue on that
+						// should or could be done
+						// there are a number of messages to intercept, such as authSuccess, authError
+						if(message.authSuccess){
+							me.onAuthSuccess.call(me,message.authSuccess);
+							return;
+						}
+						if(message.authError){
+							me.onAuthError.call(me,message.authError);
+							return;
+						} 
+						if(message.logoutSuccess){
+							me.onLogoutSuccess.call(me,message.logoutSuccess);
+							return; 
+						} 
+						// assume the others are data messages
+						me.onDataMessage.call(me,message); //default
+					} // end for
+				}  
+				else {
+					console.log("Received information from the server that couldn't be parsed");
+				} 
+			} // otherwise ignore
+			SC.RunLoop.end();
+		}; // end function
+		
+		return handler;
+	},
+
+	createOnErrorHandler: function(){
+		var me = this;
+		return function(event){
+			console.log('MyonError: ' + event.toString());
+		};      
+	},
+
+	createOnCloseHandler: function(event){
+		var me = this;
+		return function(event){
+			console.log('MyonClose: ' + event.toString());
+			// don't throw away existing user and session information
+			me.isConnected = false;
+		};      
+	},
    
-   createOnErrorHandler: function(){
-      var me = this;
-      return function(event){
-         console.log('MyonError: ' + event.toString());
-      };      
-   },
-   
-   createOnCloseHandler: function(event){
-      var me = this;
-      return function(event){
-         console.log('MyonClose: ' + event.toString());
-         // don't throw away existing user and session information
-         me.isConnected = false;
-      };      
-   },
-   
-   sendAuthRequest: null, // a closure function to save the username and passwd, in case of reauth
-   
-   authRequest: function(user,passwd,passwdIsMD5){
-      var me = this;
-      // create 
-      var sendAuthRequest = function(){
-         var baseRequest = {auth:{ user: user, passwd: passwd, passwdIsMD5: passwdIsMD5}};
-         // resume the session if possible
-         if(me.userData && me.userData.isAuthenticated()) baseRequest.auth.sessionKey = me.userData.sessionKey(me.userData.key()); 
-         me.send(baseRequest);
-      };
-      this.sendAuthRequest = sendAuthRequest;
-      if(!this.isConnected){
-         this.connect(me.store,sendAuthRequest);
-      }
-      else sendAuthRequest();
-   },
-   
-   refreshRequest: function(bucket,key){
-      this.send({ refreshRecord: { bucket: bucket, key: key}});
-   },
-   
-   createRequest: function(bucket,data){
-     this.send({ createRecord: { bucket: bucket, record: data}}); 
-   },
-   
-   logoutRequest: function(){
-     if(this.userData && this.userData.isAuthenticated()){
-       this.send({ logOut: { user: this.userData.userName(this.userData.key()) }});       
-     }
-     else console.log('Trying to logout, but not logged in');
-   },
-   
-   onAuthSuccess: function(data){
-      // function called when authorisation has been completed successfully
-      //console.log('onAuthSuccess called on ' + this);
-      SC.RunLoop.begin();
-      this.userData = ThothSC.userDataCreator({ user: data.user, sessionKey: data.sessionKey, role: data.role });
-      //alert("onAuthSuccess!");
-      if(this.authSuccessCallback) this.authSuccessCallback();
-      SC.RunLoop.end();
-   },
-   
-   onAuthError: function(data){
-     SC.RunLoop.begin();
-      // function called when authorisation has gone awry for some reason
-      var errorMsg = data.errorMsg;
-      console.log('Authentication error: ' + errorMsg);
-      //this.showErrorMessage(errorMsg,this.showLoginPane);
-      if(this.authErrorCallback) this.authErrorCallback();
-      SC.RunLoop.end();
-   },
-   
-   onLogoutSuccess: function(data){
-      // function called when logout has been successfull
-      // remove user and session information
-      SC.RunLoop.begin();
-      this.userData = null;
-      if(this.logOutSuccessCallback) this.logOutSuccessCallback();
-      SC.RunLoop.end();
-   },
+	sendAuthRequest: null, // a closure function to save the username and passwd, in case of reauth
+
+	authRequest: function(user,passwd,passwdIsMD5){
+		var me = this;
+		// create 
+		var sendAuthRequest = function(){
+			var baseRequest = {auth:{ user: user, passwd: passwd, passwdIsMD5: passwdIsMD5}};
+			// resume the session if possible
+			if(me.userData && me.userData.isAuthenticated()) baseRequest.auth.sessionKey = me.userData.sessionKey(me.userData.key()); 
+			me.send(baseRequest);
+		};
+		this.sendAuthRequest = sendAuthRequest;
+		if(!this.isConnected){
+			this.connect(me.store,sendAuthRequest);
+		}
+		else sendAuthRequest();
+	},
+
+	refreshRequest: function(bucket,key){
+		this.send({ refreshRecord: { bucket: bucket, key: key}});
+	},
+
+	createRequest: function(bucket,data){
+		this.send({ createRecord: { bucket: bucket, record: data}}); 
+	},
+
+	logoutRequest: function(){
+		if(this.userData && this.userData.isAuthenticated()){
+			this.send({ logOut: { user: this.userData.user(this.userData.key()), sessionKey: this.userData.sessionKey(this.userData.key()) }});       
+		}
+		else console.log('Trying to logout, but not logged in');
+	},
+
+	onAuthSuccess: function(data){
+		// function called when authorisation has been completed successfully
+		//console.log('onAuthSuccess called on ' + this);
+		SC.RunLoop.begin();
+		this.userData = ThothSC.userDataCreator({ user: data.user, sessionKey: data.sessionKey, role: data.role });
+		//alert("onAuthSuccess!");
+		if(this.authSuccessCallback) this.authSuccessCallback();
+		SC.RunLoop.end();
+	},
+
+	onAuthError: function(data){
+		SC.RunLoop.begin();
+		// function called when authorisation has gone awry for some reason
+		var errorMsg = data.errorMsg;
+		console.log('Authentication error: ' + errorMsg);
+		//this.showErrorMessage(errorMsg,this.showLoginPane);
+		if(this.authErrorCallback) this.authErrorCallback();
+		SC.RunLoop.end();
+	},
+
+	onLogoutSuccess: function(data){
+		// function called when logout has been successfull
+		// remove user and session information
+		SC.RunLoop.begin();
+		this.userData = null;
+		if(this.logOutSuccessCallback) this.logOutSuccessCallback();
+		SC.RunLoop.end();
+	},
    
    /*
    DATA requests:
@@ -317,121 +326,118 @@ ThothSC.DataSource = SC.DataSource.extend({
    { deleteRecordResult: {}, returnData: {} }
    { refreshRecordResult: {}, returnData: {} }
    */
-   
-   onDataMessage: function(data){
-      // function called when a data message has arrived
-      // this is the part where interaction with the store comes into play
-      // let's create handlers for every type of action ...
-      // if you need extra calls, add 'em here
-      console.log("Received data message: " + JSON.stringify(data));
-      data = (data instanceof Array)? data[0]: data; // make sure we are dealing with an object
-      if(data.createRecord) this.onPushedCreateRecord(data);
-      if(data.updateRecord) this.onPushedUpdateRecord(data);
-      if(data.deleteRecord) this.onPushedDeleteRecord(data);
-      if(data.fetchResult) this.onFetchResult(data);
-      if(data.createRecordResult) this.onCreateRecordResult(data);
-      if(data.updateRecordResult) this.onUpdateRecordResult(data);
-      if(data.deleteRecordResult) this.onDeleteRecordResult(data);
-      if(data.refreshRecordResult) this.onRefreshRecordResult(data);
-      if(data.fetchError) this.onFetchError(data);
-      if(data.refreshRecordError) this.onRefreshRecordError(data);
-      if(data.createRecordError) this.onCreateRecordError(data);
-      if(data.updateRecordError) this.onUpdateRecordError(data);
-      if(data.deleteRecordError) this.onDeleteRecordError(data);
-      if(data.rpcResult) this.onRPCResult(data);
-      if(data.rpcError) this.onRPCError(data);
-   },
-   
-   _rpcRequestCache: null,
-   
-   rpcRequest: function(functionName,params,callback){
-      // generate an RPC request to Thoth
-      var cacheKey = this._createRequestCacheKey();
-      if(!this._rpcRequestCache) this._rpcRequestCache = {};
-      if(!this._rpcRequestCache[cacheKey]) this._rpcRequestCache[cacheKey] = { callback: callback };
-      this.send( { rpcRequest: { functionName: functionName, params: params, returnData: { rpcCacheKey: cacheKey } }}); 
-   },
-   
-   onRPCResult: function(data){
-      if(!this._rpcRequestCache) throw "Thoth DataSource: received an RPC onRPC result but no request has been sent";
-      else {
-         var rpcResult = data.rpcResult;
-         if(rpcResult){
-            var cacheKey = rpcResult.returnData.rpcCacheKey;
-            this._rpcRequestCache[cacheKey].callback(rpcResult);
-            delete this._rpcRequestCache[cacheKey]; // clean up
-         }
-         else throw "Thoth DataSource: received an invalid rpcResult message";
-      }
-   },
-   
-   onRPCError: function(data){
-      if(!this._rpcRequestCache) throw "Thoth DataSource: received an RPC onRPC error but no request has been sent";
-      else {
-         var rpcError = data.rpcError;
-         var cacheKey = rpcError.returnData.cacheKey;
-         this._rpcRequestCache[cacheKey].callback(rpcError);
-      }
-   },
+
+	onDataMessage: function(data){
+		// function called when a data message has arrived
+		// this is the part where interaction with the store comes into play
+		// let's create handlers for every type of action ...
+		// if you need extra calls, add 'em here
+		if(this.debug) console.log("Received data message: " + JSON.stringify(data));
+		data = (data instanceof Array)? data[0]: data; // make sure we are dealing with an object
+		if(data.createRecord) this.onPushedCreateRecord(data);
+		if(data.updateRecord) this.onPushedUpdateRecord(data);
+		if(data.deleteRecord) this.onPushedDeleteRecord(data);
+		if(data.fetchResult) this.onFetchResult(data);
+		if(data.createRecordResult) this.onCreateRecordResult(data);
+		if(data.updateRecordResult) this.onUpdateRecordResult(data);
+		if(data.deleteRecordResult) this.onDeleteRecordResult(data);
+		if(data.refreshRecordResult) this.onRefreshRecordResult(data);
+		if(data.fetchError) this.onFetchError(data);
+		if(data.refreshRecordError) this.onRefreshRecordError(data);
+		if(data.createRecordError) this.onCreateRecordError(data);
+		if(data.updateRecordError) this.onUpdateRecordError(data);
+		if(data.deleteRecordError) this.onDeleteRecordError(data);
+		if(data.rpcResult) this.onRPCResult(data);
+		if(data.rpcError) this.onRPCError(data);
+	},
+
+	_rpcRequestCache: null,
+
+	rpcRequest: function(functionName,params,callback){
+		// generate an RPC request to Thoth
+		var cacheKey = this._createRequestCacheKey();
+		if(!this._rpcRequestCache) this._rpcRequestCache = {};
+		if(!this._rpcRequestCache[cacheKey]) this._rpcRequestCache[cacheKey] = { callback: callback };
+		this.send( { rpcRequest: { functionName: functionName, params: params, returnData: { rpcCacheKey: cacheKey } }}); 
+	},
+
+	onRPCResult: function(data){
+		if(!this._rpcRequestCache) throw "Thoth DataSource: received an RPC onRPC result but no request has been sent";
+		else {
+			var rpcResult = data.rpcResult;
+			if(rpcResult){
+				var cacheKey = rpcResult.returnData.rpcCacheKey;
+				this._rpcRequestCache[cacheKey].callback(rpcResult);
+				delete this._rpcRequestCache[cacheKey]; // clean up
+			}
+			else throw "Thoth DataSource: received an invalid rpcResult message";
+		}
+	},
+
+	onRPCError: function(data){
+		if(!this._rpcRequestCache) throw "Thoth DataSource: received an RPC onRPC error but no request has been sent";
+		else {
+			var rpcError = data.rpcError;
+			var cacheKey = rpcError.returnData.cacheKey;
+			this._rpcRequestCache[cacheKey].callback(rpcError);
+		}
+	},
    
    /*
       =====
       Push callbacks
       =====
    */
-   
-   onPushedCreateRecord: function(data){
-      // function to process the creation of a record in the store with the pushed data by the server
-      // used when a different user creates a record of which the current user should know
-      var createRequest = data.createRecord;
-      console.log("onPushedUpdateRecord called with: " + data);
-      var bucket = createRequest.bucket, key = createRequest.key;
-      var rectype = this._recordTypeCache[bucket];
-      //var relations = createRequest.relations; // cannot recall whether this is actually necessary ... 
-      //var recordToCreate = relations? this._processRelationSet([createRequest.record],relations)
-      //pushRetrieve: function(recordType, id, dataHash, storeKey) {
-      var storeKey = this.store.pushRetrieve(rectype,key,createRequest.record); // this also depends on Thoth setting id to the Riak key!!
-      if(!storeKey){
-         // oops... the store didn't allow storing this record...
-         // unclear what to do in this case
-         // let's do an alert for the time being
-         alert("The server has tried to push a createRecord request to your application, but isn't allowed to store it");
-      }
-   },
-   
-   onPushedUpdateRecord: function(data){
-      // function to update a change in a record in the store with pushed data by the server
-      // used when a different user updates a record of which the current user should know
-      // store.pushRetrieve
-      console.log("onPushedUpdateRecord called with: " + data);
-      var updateRequest = data.updateRecord;
-      // the layout of the updateRecord call is similar to the updateRecordResult
-      var bucket = updateRequest.bucket;
-      var key = updateRequest.key;
-      var rectype = this._recordTypeCache[bucket];
-      var result = this.store.pushRetrieve(rectype,key,updateRequest.record); 
-      if(!result){
-         // we need to think of a proper way to deal with not being allowed to update a record...
-         // it shouldn't happen though if the application is using nested stores...
-         alert("The server has tried to update a record in your application, but wasn't allowed to do so!");
-      }
-   },
-   
-   onPushedDeleteRecord: function(data){
-      // function to delete a record in the store with pushed data by the server
-      // used when a different user deletes a record of which the current user should know
-      // store.pushDestroy
-      var deleteRequest = data.deleteRecord;
-      var bucket = deleteRequest.bucket;
-      var key = deleteRequest.key;
-      var rectype = this._recordTypeCache[bucket];
-      var result = this.store.pushDestroy(rectype,key);
-      if(!result){
-         alert("The server has tried to delete a record from your application, but wasn't allowed to do so!");
-      }
-   },
-   
-   
+
+	onPushedCreateRecord: function(data){
+		// function to process the creation of a record in the store with the pushed data by the server
+		// used when a different user creates a record of which the current user should know
+		var createRequest = data.createRecord;
+		if(this.debug) console.log("onPushedUpdateRecord called with: " + data);
+		var bucket = createRequest.bucket, key = createRequest.key;
+		var rectype = this._recordTypeCache[bucket];
+		var storeKey = this.store.pushRetrieve(rectype,key,createRequest.record); // this also depends on Thoth setting id to the Riak key!!
+		if(!storeKey){
+			// oops... the store didn't allow storing this record...
+			// unclear what to do in this case
+			// let's do an alert for the time being
+			alert("The server has tried to push a createRecord request to your application, but isn't allowed to store it");
+		}
+	},
+
+	onPushedUpdateRecord: function(data){
+		// function to update a change in a record in the store with pushed data by the server
+		// used when a different user updates a record of which the current user should know
+		// store.pushRetrieve
+		if(this.debug) console.log("onPushedUpdateRecord called with: " + data);
+		var updateRequest = data.updateRecord;
+		// the layout of the updateRecord call is similar to the updateRecordResult
+		var bucket = updateRequest.bucket;
+		var key = updateRequest.key;
+		var rectype = this._recordTypeCache[bucket];
+		var result = this.store.pushRetrieve(rectype,key,updateRequest.record); 
+		if(!result){
+			// we need to think of a proper way to deal with not being allowed to update a record...
+			// it shouldn't happen though if the application is using nested stores...
+			alert("The server has tried to update a record in your application, but wasn't allowed to do so!");
+		}
+	},
+
+	onPushedDeleteRecord: function(data){
+		// function to delete a record in the store with pushed data by the server
+		// used when a different user deletes a record of which the current user should know
+		// store.pushDestroy
+		var deleteRequest = data.deleteRecord;
+		var bucket = deleteRequest.bucket;
+		var key = deleteRequest.key;
+		var rectype = this._recordTypeCache[bucket];
+		var result = this.store.pushDestroy(rectype,key);
+		if(!result){
+			alert("The server has tried to delete a record from your application, but wasn't allowed to do so!");
+		}
+	},
+
+
    
    /* 
       ======
@@ -562,7 +568,7 @@ ThothSC.DataSource = SC.DataSource.extend({
          var requestKey = this._createRequestCacheKey();
          this._requestCache[requestKey] = { store: store, query: query, numResponses: numResponses };
          request.fetch.returnData = { requestKey: requestKey };
-         console.log('Sending fetchRequest: ' + JSON.stringify(request));
+         if(this.debug) console.log('Sending fetchRequest: ' + JSON.stringify(request));
          this.send(request);      
       }
       return YES;
@@ -714,7 +720,7 @@ ThothSC.DataSource = SC.DataSource.extend({
             } // end of storeKeysInCache && relationSet
             if(this._requestCache[requestKey].numResponses === 0){
                // last request received, clean up
-               console.log("Finishing up the query stuff in Fetch");
+               if(this.debug) console.log("Finishing up the query stuff in Fetch");
                store.dataSourceDidFetchQuery(curRequestData.query);
                delete this._requestCache[requestKey];
             }
@@ -956,7 +962,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       // do we need a requestCache? Yes we do, as we need the store info, and in case of relations
       // we will receive multiple responses
       var numResponses = (relations && (relations instanceof Array))? 1 + relations.length: 1;
-      console.log("Expecting " + numResponses + " responses");
+      if(this.debug) console.log("Expecting " + numResponses + " responses");
       var requestCacheKey = this._createRequestCacheKey();
       //console.log("Trying to refresh data of record storeKey: " + storeKey);
       this._requestCache[requestCacheKey] = { store: store, storeKey: storeKey, recordType: recType, id: recordId, numResponses: numResponses };
@@ -1001,7 +1007,7 @@ ThothSC.DataSource = SC.DataSource.extend({
    },
    
    onRefreshRecordResult: function(data){
-      console.log("Received update: " + JSON.stringify(data));
+      if(this.debug) console.log("Received update: " + JSON.stringify(data));
       // function to process the data from the server when a refreshRecord call has been made to the server
       // we have a few cases here that are similar too the fetch request
       // we cannot just write the stuff to the store, as we have separate messages for relation stuff
@@ -1114,7 +1120,7 @@ ThothSC.DataSource = SC.DataSource.extend({
    
    onCreateRecordResult: function(data){
       // function to process the data from the server when a createRecord call has been made to the server
-      console.log('ThothSC onCreateRecordResult: ' + JSON.stringify(data));
+      if(this.debug) console.log('ThothSC onCreateRecordResult: ' + JSON.stringify(data));
       var createRecordResult = data.createRecordResult;
       var requestCacheKey = createRecordResult.returnData.requestCacheKey;
       var requestCache = this._requestCache[requestCacheKey];
@@ -1130,7 +1136,7 @@ ThothSC.DataSource = SC.DataSource.extend({
    },
    
    updateRecord: function(store,storeKey,params){
-      console.log('ThothSC data source updateRecord called');
+      if(this.debug) console.log('ThothSC data source updateRecord called');
       // function to send updates to Thoth.
       // Thoth supports separate relation updates from record information
       // SC doesn't at the moment, so we'll just do everything together
@@ -1156,7 +1162,7 @@ ThothSC.DataSource = SC.DataSource.extend({
           //relations separated from the record data         
        }
        var numResponses = (relations.length>0)? 1 + relations.length: 1;
-       console.log('expecting ' + numResponses + ' responses for this update');
+       if(this.debug) console.log('expecting ' + numResponses + ' responses for this update');
        var requestCacheKey = this._createRequestCacheKey();
        this._requestCache[requestCacheKey] = { store: store, storeKey: storeKey, params: params, recordKey: key, numResponses: numResponses };
        var returnData = { requestCacheKey: requestCacheKey };
@@ -1195,7 +1201,7 @@ ThothSC.DataSource = SC.DataSource.extend({
    },
    
    onUpdateRecordResult: function(data){
-      console.log("Received update: " + JSON.stringify(data));
+      if(this.debug) console.log("Received update: " + JSON.stringify(data));
       // different implementation of the onUpdateRecordResult
       // as Thoth can also return the data in one go
       // which seems the most simple and forward solution
