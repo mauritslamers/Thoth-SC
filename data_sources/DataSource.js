@@ -302,6 +302,8 @@ ThothSC.DataSource = SC.DataSource.extend({
 		// remove user and session information
 		SC.RunLoop.begin();
 		this.userData = null;
+		// remove existing connections
+		if(this.disconnect) this.disconnect();
 		if(this.logOutSuccessCallback) this.logOutSuccessCallback();
 		SC.RunLoop.end();
 	},
@@ -474,44 +476,47 @@ ThothSC.DataSource = SC.DataSource.extend({
       Let's start with loadRecord and create additional ones if necessary
    */
    
-   loadRecord: function(store,recordType,storeKey,dataHash,isComplete) {
-     // copy this behaviour from dataSource did complete and pushRetrieve
-     var primKey = recordType.prototype.primaryKey;
-     var id = dataHash[primKey] || dataHash.key || dataHash.id; // when id doesn't exist, try key
-      var status, K = SC.Record;
-      if(id){
-         if(storeKey === undefined){
-            storeKey = recordType.storeKeyFor(id); 
-            status = isComplete? K.READY_CLEAN: K.BUSY_LOADING;
-         } 
-         else {
-            // EMPTY, ERROR, READY_CLEAN, READY_NEW, READY_DIRTY, DESTROYED_CLEAN,
-            // DESTROYED_DIRTY
-            status = store.readStatus(storeKey);
-            if (!(status & K.BUSY)) {
-              throw K.BAD_STATE_ERROR; // should never be called in this state
-            }
+	loadRecord: function(store,recordType,storeKey,dataHash,isComplete) {
+		// copy this behaviour from dataSource did complete and pushRetrieve
+		var primKey = recordType.prototype.primaryKey;
+		var id = dataHash[primKey] || dataHash.key || dataHash.id; // when id doesn't exist, try key
+		var status, K = SC.Record;
+		if(id){
+			if(storeKey === undefined){
+				storeKey = recordType.storeKeyFor(id); 
+				status = isComplete? K.READY_CLEAN: K.BUSY_LOADING;
+			} 
+			else {
+				// EMPTY, ERROR, READY_CLEAN, READY_NEW, READY_DIRTY, DESTROYED_CLEAN,
+				// DESTROYED_DIRTY
+				status = store.readStatus(storeKey);
+				if (!(status & K.BUSY)) {
+					throw K.BAD_STATE_ERROR; // should never be called in this state
+				}
 
-            // otherwise, determine proper state transition
-            if(status===K.BUSY_DESTROYING) {
-              throw K.BAD_STATE_ERROR ;
-            } else {
-               status = isComplete? K.READY_CLEAN : K.BUSY_LOADING ;
-            }
-         }
-         //console.log("Writing data " + JSON.stringify(dataHash) + " with status " + status + " and storeKey: " + storeKey);
-         store.writeStatus(storeKey, status) ;
-         store.writeDataHash(storeKey, dataHash, status) ;
+				// otherwise, determine proper state transition
+				if(status===K.BUSY_DESTROYING) {
+					throw K.BAD_STATE_ERROR ;
+				} else {
+					status = isComplete? K.READY_CLEAN : K.BUSY_LOADING ;
+				}
+			}
+			//console.log("Writing data " + JSON.stringify(dataHash) + " with status " + status + " and storeKey: " + storeKey);
+			store.writeStatus(storeKey, status) ;
+			store.writeDataHash(storeKey, dataHash, status) ;
 
-         var statusOnly = NO;
-         store.dataHashDidChange(storeKey, null, statusOnly);
+			var statusOnly = NO;
+			store.dataHashDidChange(storeKey, null, statusOnly);
 
-         return storeKey ;         
-      }
-      else {
-         throw "Whoops, uploading a record without ID??";
-      }
-   },
+			return storeKey ;         
+		}
+		else {
+			console.log('Whoops, uploading a record without id?');
+			console.log('Record: ' + JSON.stringify(dataHash));
+			console.log('Trying to get: ')
+			throw "Whoops, uploading a record without ID??";
+		}
+	},
    
    /*
     the fetch function sets a request cache object to be able to handle the return messages
@@ -1013,6 +1018,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       // we cannot just write the stuff to the store, as we have separate messages for relation stuff
       // the best we can do is save the relations if they come first
       var refreshResult = data.refreshRecordResult;
+			console.log('received refresh: ' + JSON.stringify(refreshResult));
       var requestCacheKey = refreshResult.returnData.requestCacheKey;
       var curRequestCache = this._requestCache[requestCacheKey];
       var relationSet = refreshResult.relationSet;
@@ -1035,12 +1041,12 @@ ThothSC.DataSource = SC.DataSource.extend({
          // we only have one record here, so feed it an array with one element, and only take the first element
          // from the return data.
          mergedData = unsavedRelations? this._processRelationSet([recordData],unsavedRelations)[0]: recordData;
-
+				 console.log('mergedData is an array still?' + JSON.stringify(mergedData));
+				 console.log('or is recordData an array? ' + JSON.stringify(recordData));
          // store the record in the cache, to make sure that when relations and record data arrives at the same time
          // can be handled
          curRequestCache.record = mergedData;
          // now store the record data in the store
-         //loadRecord: function(store,recordType,storeKey,dataHash,isComplete) {
          isComplete = (curRequestCache.numResponses < 2)? YES: NO;   
          this.loadRecord(curRequestCache.store,curRequestCache.recordType,curRequestCache.storeKey,mergedData,isComplete);
          this._requestCache[requestCacheKey].numResponses--;
@@ -1051,7 +1057,7 @@ ThothSC.DataSource = SC.DataSource.extend({
          // merge the relation data with the record and update the data in the store
          mergedData = this._processRelationSet([curRequestCache.record],relationSet)[0];
          //console.log("We received a relationSet, so updating the record with the following data: " + JSON.stringify(mergedData));
-         isComplete = (curRequestCache.numResponses < 2)? YES: NO;   
+         isComplete = (curRequestCache.numResponses < 2)? YES: NO;
          this.loadRecord(curRequestCache.store,curRequestCache.recordType,curRequestCache.storeKey,mergedData,isComplete);
          this._requestCache[requestCacheKey].numResponses--;
       }

@@ -1,4 +1,5 @@
 sc_require('data_sources/DataSource');
+sc_require('system/XHRLongPollingRequest');
 
 ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 
@@ -23,8 +24,8 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 		SC.Request.postUrl(this.get('actualThothURL'),dataToSend).async()
 		.header('user',user)
 		.header('sessionkey',sessionKey)
-		.notify(500,this,'.showReconnectMessage',this)
-		.notify(404,this,'showReconnectMessage',this)
+		//.notify(500,this,'.showReconnectMessage',this)
+		//.notify(404,this,'showReconnectMessage',this)
 		.send();
 	},
 
@@ -37,6 +38,7 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 
 	authRequest: function(user,passwd,passwdIsMD5){
 		// for XHRPolling an authRequest is a normal REST POST request
+		var me = this;
 		var url = this.get('authURL');
 		//var baseRequest = {auth:{ user: user, passwd: passwd, passwdIsMD5: passwdIsMD5}};
 		var baseRequest = { user: user, passwd: passwd };
@@ -44,9 +46,9 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 		if(this.userData && this.userData.isAuthenticated()) baseRequest.sessionKey = this.userData.sessionKey(this.userData.key()); // resume the session if possible
 		console.log('sending auth request to ' + url);
 		SC.Request.postUrl(url,baseRequest).json()
-		.notify(this,this._authRequestCallback,this,user)
-		.notify(500,this,'_authRequestSendError',this)
-		.notify(404,this,'_authRequestSendError',this)
+		.notify(me,'_authRequestCallback',me,user)
+		.notify(500,me,'_authRequestSendError',me)
+		.notify(404,this,'_authRequestSendError',me)
 		.send();
 		// it would be nice to add some extra notifications here, in case the server is down etc...
 	},
@@ -69,16 +71,16 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 				this.isConnected = YES;
 				this.isAuthenticated = YES;
 				// now do the setup of the XHRPolling
-				dataSource.connectXHRPollingSC();
+				this.connectXHRPollingSC();
 				// now do the authSuccessCallback
-				if(dataSource.authSuccessCallback){
+				if(this.authSuccessCallback){
 					console.log('calling authSuccessCallback');
-					dataSource.get('authSuccessCallback')({ role: data.role });   
+					this.authSuccessCallback({ role: data.role });   
 				}
 				else console.log('Thoth XHR Polling: no authSuccessCallback set');             
 			}
 			else {
-				if(dataSource.authErrorCallback) dataSource.get('authErrorCallback')(data.errorMessage);
+				if(dataSource.authErrorCallback) dataSource.authErrorCallback(data.errorMessage);
 				else this.showErrorMessage("Login failed", this.showLoginPane);
 			} 
 		}
@@ -86,7 +88,7 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 	},
 
 	type: 'xhr-polling',
-
+/*
 	connect: function(store,callback){
 		// setup the first connection and set the long polling action in motion
 		// Thoth wants to do auth first, even if auth is not set up...
@@ -102,32 +104,45 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 			// do the callback
 			if(callback) callback();
 		}
-	},
+	}, */
 
 	_pollingRequest: null,
 
 	connectXHRPollingSC: function(){
+		console.log('XHRPollingDataSource: Setting up polling');
+		console.log('XHRPollingDataSource: this = ' + this.toString());
 		var me = this;
 		var user = "", sessionKey = "";
 		if(this.userData && this.userData.isAuthenticated()){
 			user = this.userData.user(this.userData.key());
 			sessionKey = this.userData.sessionKey(this.userData.key());
 		}
-
-		this._pollingRequest = SC.Request.getUrl(this.get('actualThothURL')).async()
-		.header('user',user)
-		.header('sessionkey',sessionKey)
-		//.header('Accept-Charset','utf-8;q=0.7,*;q=0.3')
-		.json()
-		.notify(me,me.handleXHRPolling,me)
-		.notify(400,me,'showReconnectMessage',me)
-		.notify(500,me,'showReconnectMessage',me)
-		.send();
+		if(this._pollingRequest && !this._pollingRequest.shouldStopPolling){
+			console.log('reusing polling');
+			this._pollingRequest.resend();
+		} 
+		else {
+			console.log('creating new polling req');
+			this._pollingRequest = SC.Request.getUrl(this.get('actualThothURL')).async()
+			.header('user',user)
+			.header('sessionkey',sessionKey)
+			.json()
+			.notify(me,'handleXHRPolling',me);
+			//.notify(400,me,'showReconnectMessage',me)
+			//.notify(500,me,'showReconnectMessage',me);
+			// in this way we can reuse the request itself, as send returns a response obj, not the request itself
+			
+			this._pollingRequest.send(); 
+		}
 	},
-   
+
+	shouldStopPolling: null, 
+	
 	handleXHRPolling: function(response,dataSource){
 		// no runloop needed as this is taken care of in the main data source
 		//if(response.request !== this._pollingRequest) return; // ignore "old" requests
+		var me = this;
+		SC.RunLoop.begin();
 		if(SC.ok(response)){
 			var dataHandler = dataSource.createOnMessageHandler();
 			var data = response.get('body');
@@ -137,9 +152,14 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 				//console.log('sending eventdata to dataHandler: ' + SC.inspect(data[0]));
 				dataHandler(eventData);            
 			}
-			dataSource.connectXHRPollingSC();
+			if(!me.shouldStopPolling) me.invokeLater(me.connectXHRPollingSC);
+			else {
+				console.log('XHR Polling has stopped...');
+				me.shouldStopPolling = null;
+			}
 		}
 		console.log('current status: ' + response.status);
+		SC.RunLoop.end();
 	},
 
 	showReconnectMessage: function(msg){
@@ -193,6 +213,14 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 		this._pane.remove();
 		this._pane = null;
 		this.showLoginPane();      
+	},
+	
+	disconnect: function(){
+		//function to disconnect the XHR polling after logout
+		console.log("XHRPolling disconnecting...");
+		this.shouldStopPolling = YES;
+		//SC.Request.manager.cancel(this._pollingRequest);
+		//this._pollingRequest.destroy();
 	}
 
 });
