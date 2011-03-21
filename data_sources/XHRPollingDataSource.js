@@ -19,7 +19,7 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 		var user = this.userData? this.userData.user(this.userData.key()): '';
 		var sessionKey = this.userData? this.userData.sessionKey(this.userData.key()): '';
 
-		console.log('ThothSC XHRPollingDataSource: trying to send: ' + JSON.stringify(data));
+		//console.log('ThothSC XHRPollingDataSource: trying to send: ' + JSON.stringify(data));
 		var dataToSend = 'data='+ encodeURIComponent(JSON.stringify(data));
 		SC.Request.postUrl(this.get('actualThothURL'),dataToSend).async()
 		.header('user',user)
@@ -146,7 +146,7 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 		if(SC.ok(response)){
 			var dataHandler = dataSource.createOnMessageHandler();
 			var data = response.get('body');
-			console.log('Type of data is: ' + SC.typeOf(data));
+			//console.log('Type of data is: ' + SC.typeOf(data));
 			if(data !== ""){
 				var eventData = { data: data }; // overcome the event based dataHandler
 				//console.log('sending eventdata to dataHandler: ' + SC.inspect(data[0]));
@@ -158,7 +158,7 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 				me.shouldStopPolling = null;
 			}
 		}
-		console.log('current status: ' + response.status);
+		//console.log('current status: ' + response.status);
 		SC.RunLoop.end();
 	},
 
