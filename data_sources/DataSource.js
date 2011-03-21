@@ -59,6 +59,8 @@ ThothSC.DataSource = SC.DataSource.extend({
 	logOutSuccessCallback: null, //callback if the logout was succesfull
 
 	noConnectionCallback: null, //callback if the data source cannot connect
+	
+	errorMessageCallback: null, // callback if there is some other error
 
 	authenticationPane: null,
 
@@ -131,13 +133,18 @@ ThothSC.DataSource = SC.DataSource.extend({
 	_paneCallback: null,
 
 	showErrorMessage: function(message,callback){
-		
-		if(this._pane) return NO; // don't show if a pane already exists
-		var me = this;
-		var sheet = ThothSC.ErrorMessage.create({ message: message, dataSource: this});
-		this._pane = sheet;
-		this._callback = callback;
-		sheet.append();
+		if(this.errorMessageCallback) {
+			this.errorMessageCallback(message);
+			if(callback) callback();
+		}
+		else {
+			if(this._pane) return NO; // don't show if a pane already exists
+			var me = this;
+			var sheet = ThothSC.ErrorMessage.create({ message: message, dataSource: this});
+			this._pane = sheet;
+			this._callback = callback;
+			sheet.append();			
+		}
 	},
 
 	closeErrorMessage: function(){
@@ -1119,7 +1126,7 @@ ThothSC.DataSource = SC.DataSource.extend({
          storeKey = curRequestData.storeKey;
          store = curRequestData.store;
          store.dataSourceDidError(storeKey);
-         delete this._requestData[requestCacheKey];
+         delete this._requestCache[requestCacheKey];
          this.showErrorMessage(message);
       }
    },
