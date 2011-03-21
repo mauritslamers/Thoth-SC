@@ -663,7 +663,7 @@ ThothSC.DataSource = SC.DataSource.extend({
          query = curRequestData.query;
          store = curRequestData.store;
          store.dataSourceDidErrorQuery(query);
-         delete this._requestData[requestCacheKey];
+         delete this._requestCache[requestCacheKey];
          this.showErrorMessage(message);
       }
    },
@@ -1013,7 +1013,7 @@ ThothSC.DataSource = SC.DataSource.extend({
          storeKey = curRequestData.storeKey;
          store = curRequestData.store;
          store.dataSourceDidError(storeKey);
-         delete this._requestData[requestCacheKey];
+         delete this._requestCache[requestCacheKey];
          this.showErrorMessage(message);
       }
    },
