@@ -1258,7 +1258,8 @@ ThothSC.DataSource = SC.DataSource.extend({
         primaryKey: attrs.primaryKey, 
         record: recordData, 
         properties: properties, 
-        relations: relations }};
+        relations: relations,
+ 				returnData: returnData }};
       this.send(request);
       return YES;
    },
