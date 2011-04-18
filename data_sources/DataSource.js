@@ -1,3 +1,4 @@
+/*globals ThothSC */
 sc_require('views/loginpane');
 sc_require('views/errormessage');
 
@@ -257,6 +258,7 @@ ThothSC.DataSource = SC.DataSource.extend({
 		var me = this;
 		// create 
 		var sendAuthRequest = function(){
+			SC.Logger.log("name of datasource: " + me.get('name'));
 			var baseRequest = {auth:{ user: user, passwd: passwd, passwdIsMD5: passwdIsMD5}};
 			// resume the session if possible
 			if(me.userData && me.userData.isAuthenticated()) baseRequest.auth.sessionKey = me.userData.sessionKey(me.userData.key()); 
@@ -520,7 +522,7 @@ ThothSC.DataSource = SC.DataSource.extend({
 		else {
 			console.log('Whoops, uploading a record without id?');
 			console.log('Record: ' + JSON.stringify(dataHash));
-			console.log('Trying to get: ')
+			//console.log('Trying to get: ')
 			throw "Whoops, uploading a record without ID??";
 		}
 	},
@@ -569,7 +571,7 @@ ThothSC.DataSource = SC.DataSource.extend({
             request.fetch.parameters = query.parameters;
          }
          // check on relations and if there are, add them to the request
-         var attributeInfo = this._getAttributes(rectype);
+         var attributeInfo = ThothSC.getAttributes(rectype);
          request.fetch.primaryKey = attributeInfo.primaryKey;
          if(this.propertyBasedRetrieval) request.fetch.properties = attributeInfo.properties;
          if(attributeInfo.relations.length > 0){
@@ -741,43 +743,6 @@ ThothSC.DataSource = SC.DataSource.extend({
      // SC.RunLoop.end();
    },
    
-   _processRelationSet: function(records,relationSet) {
-      // function to parse a relationSet object and set the properties to the records
-      // returns the records with the relations
-
-      /* response body: 
-       [{"fetchResult":{"relationSet": [{"bucket":"teacher",
-         "keys":["MT8jQ54bZk4uLRw9VDXMmh0MznR","Sk4cDo9ZexkQZb1HmiHxr4x0pMc","2","3"],
-         "propertyName":"exams",
-         "data":{
-            "2":["1PQVFFjFHhHwWC6noi5fBzoVzBu","4V4MrkoHAXVqre9X9x3rrYAHDVT"],
-            "3":[],
-            "MT8jQ54bZk4uLRw9VDXMmh0MznR":[],
-            "Sk4cDo9ZexkQZb1HmiHxr4x0pMc":[]
-         }
-         }]}}]
-      */
-      
-      var i,j,numrecords,numrelations, curRel, curRelData, curRec, curRecKey;
-      var ret = [];
-      // walk through the records one by one and look whether there are relations
-      numrelations = relationSet.length;
-      //console.log("trying to add " + numrelations + " relations");
-      for(i=0,numrecords=records.length;i<numrecords;i++){
-         curRec = records[i];
-         curRecKey = curRec.key;
-         for(j=0;j<numrelations;j++){
-            curRel = relationSet[j];
-            curRelData = curRel.data[curRecKey];
-            if(curRelData){
-               curRec[curRel.propertyName] = curRelData;
-            }
-         }// end relation parsing
-         ret.push(curRec);
-      }
-      return ret;
-   },
-   
    
    // something we need to do is to create a cache of bucket and recordTypes.
    // Thoth will only push data for records or queries fetched earlier...
@@ -857,95 +822,8 @@ ThothSC.DataSource = SC.DataSource.extend({
       return ret.join('');
    },
    
-  _getAttributes: function(recordType){
-    // function to get all RecordAttributes
-    // it will separate out the relations and return an object: { properties: [], relations: []}
-    var recType = recordType.prototype,
-        ret = { properties: [], relations: [], primaryKey: recType.primaryKey }, 
-        curItem, oppositeRecType, i, keyName, typeName;
-    
-    for(i in recType){
-      curItem = recType[i];
-      if(curItem && curItem.kindOf && curItem.kindOf(SC.RecordAttribute)){      
-        if(curItem.kindOf(SC.ManyAttribute)){
-          // get the opposite record type
-          oppositeRecType = curItem.typeClass().prototype;
-          ret.relations.push({ 
-            type: 'toMany', 
-            bucket: oppositeRecType.bucket, 
-            primaryKey: oppositeRecType.primaryKey,
-            propertyName: i }); 
-        }
-        else {
-          if(curItem.kindOf(SC.SingleAttribute)){
-            oppositeRecType = curItem.typeClass().prototype;
-            var reverse = curItem.reverse;
-            // check whether the reverse is a toMany
-            if(reverse && oppositeRecType[reverse] && oppositeRecType[reverse].kindOf(SC.ManyAttribute)){
-              ret.relations.push({ 
-                type: 'toOne', 
-                bucket: oppositeRecType.bucket, 
-                primaryKey: oppositeRecType.primaryKey,
-                propertyName: i}); 
-            }
-          }
-          else {
-            // just a normal attribute, push to properties
-            keyName = recType[i].key || i;
-            typeName = this._getDataType(recType[i].type);
-            ret.properties.push({key: keyName, type: typeName });
-          }
-        } 
-      }
-    }
-    return ret;
-  },
+
    
-  _getDataType: function(type){
-    var ret = "";
-    if(type == String) ret = "String";
-    if(type == Array) ret = "Array";
-    if(type == Object) ret = "Object";
-    if(type == Number) ret = "Number";
-    if(type == Math) ret = "Math";
-    if(type == Date) ret = "Date";
-    if(type == Boolean) ret = "Boolean";
-    if(type == RegExp) ret = "RegExp";
-    //console.log('data type detected is: ' + ret);
-    //if(ret === "") ret = type.toString();
-    return ret;
-  },
-   
-   _getRelationsArray: function(recordType) {
-      var ret = [], recType, curItem;
-      
-      //recType = recordType.isClass? recordType: recordType.prototype; // get the class in case recordType is a record
-      recType = recordType.prototype; // fix to get to the actual record type
-      var oppositeRecType;
-      for(var i in recType){
-         curItem = recType[i];
-         //console.log('parsing key ' + i);
-         if(curItem && curItem.kindOf && curItem.kindOf(SC.RecordAttribute)){
-            if(curItem.kindOf(SC.ManyAttribute)){
-               // get the opposite record type
-               oppositeRecType = curItem.typeClass().prototype;
-               ret.push({ type: 'toMany', bucket: oppositeRecType.bucket, propertyName: i }); 
-            } 
-            if(curItem.kindOf(SC.SingleAttribute)){
-               oppositeRecType = curItem.typeClass().prototype;
-               var reverse = curItem.reverse;
-               // check whether the reverse is a toMany
-               if(reverse && oppositeRecType[reverse].kindOf(SC.ManyAttribute)){
-                  ret.push({ type: 'toOne', bucket: oppositeRecType.bucket, propertyName: i}); 
-               }
-            } 
-         }
-      }
-      if(ret.length > 0){
-         return ret;
-      }
-      else return NO;
-   },
    
    /* OrionNodeRiak record request api
    { refreshRecord: { bucket: '', key: '', returnData: {} }} 
@@ -967,7 +845,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       // update the recordType cache in case we get an update in the future
       if(!this._recordTypeCache[bucket]) this._recordTypeCache[bucket] = recType;
       
-      var attrs = this._getAttributes(recType);
+      var attrs = ThothSC.getAttributes(recType);
       var relations = attrs.relations;
       var properties = this.propertyBasedRetrieval? attrs.properties: null;
       var recordId = id? id: store.idFor(storeKey);
@@ -1080,7 +958,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       var recType = store.recordTypeFor(storeKey);
       var dataToSend = store.readDataHash(storeKey);
       var bucket = recType.prototype.bucket;
-      var attrs = this._getAttributes(recType);
+      var attrs = ThothSC.getAttributes(recType);
       var relations = attrs.relations;
       var properties = this.propertyBasedRetrieval? attrs.properties: null;
       var currel, curRelData;
@@ -1158,7 +1036,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       var recType = store.recordTypeFor(storeKey);
       var dataToSend = store.readDataHash(storeKey);
       var bucket = recType.prototype.bucket;
-      var attrs = this._getAttributes(recType);
+      var attrs = ThothSC.getAttributes(recType);
       var key = dataToSend[attrs.primaryKey] || dataToSend.key;
       var relations = attrs.relations,
           properties = this.propertyBasedRetrieval? attrs.properties: null;
@@ -1234,7 +1112,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       var recType = store.recordTypeFor(storeKey);
       var bucket = recType.prototype.bucket;
       var recordData = store.readDataHash(storeKey);
-      var attrs = this._getAttributes(recType);
+      var attrs = ThothSC.getAttributes(recType);
       var key = recordData[attrs.primaryKey] || recordData.key;
       var returnData = { requestCacheKey: requestCacheKey};
       this._requestCache[requestCacheKey] = { store: store, storeKey: storeKey, params: params };

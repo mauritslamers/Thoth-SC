@@ -1,3 +1,4 @@
+/*globals ThothSC */
 // functions that act as a toolbox for ThothSC
 
 SC.mixin(ThothSC, {
@@ -55,6 +56,105 @@ SC.mixin(ThothSC, {
       }
     });
 
+  },
+  
+  
+  processRelationSet: function(records,relationSet) {
+     // function to parse a relationSet object and set the properties to the records
+     // returns the records with the relations
+
+     /* response body: 
+      [{"fetchResult":{"relationSet": [{"bucket":"teacher",
+        "keys":["MT8jQ54bZk4uLRw9VDXMmh0MznR","Sk4cDo9ZexkQZb1HmiHxr4x0pMc","2","3"],
+        "propertyName":"exams",
+        "data":{
+           "2":["1PQVFFjFHhHwWC6noi5fBzoVzBu","4V4MrkoHAXVqre9X9x3rrYAHDVT"],
+           "3":[],
+           "MT8jQ54bZk4uLRw9VDXMmh0MznR":[],
+           "Sk4cDo9ZexkQZb1HmiHxr4x0pMc":[]
+        }
+        }]}}]
+     */
+     
+     var i,j,numrecords,numrelations, curRel, curRelData, curRec, curRecKey;
+     var ret = [];
+     // walk through the records one by one and look whether there are relations
+     numrelations = relationSet.length;
+     //console.log("trying to add " + numrelations + " relations");
+     for(i=0,numrecords=records.length;i<numrecords;i++){
+        curRec = records[i];
+        curRecKey = curRec.key;
+        for(j=0;j<numrelations;j++){
+           curRel = relationSet[j];
+           curRelData = curRel.data[curRecKey];
+           if(curRelData){
+              curRec[curRel.propertyName] = curRelData;
+           }
+        }// end relation parsing
+        ret.push(curRec);
+     }
+     return ret;
+  },
+  
+  getAttributes: function(recordType){
+    // function to get all RecordAttributes
+    // it will separate out the relations and return an object: { properties: [], relations: []}
+    var recType = recordType.prototype,
+        ret = { properties: [], relations: [], primaryKey: recType.primaryKey }, 
+        curItem, oppositeRecType, i, keyName, typeName;
+    
+    for(i in recType){
+      curItem = recType[i];
+      if(curItem && curItem.kindOf && curItem.kindOf(SC.RecordAttribute)){      
+        if(curItem.kindOf(SC.ManyAttribute)){
+          // get the opposite record type
+          oppositeRecType = curItem.typeClass().prototype;
+          ret.relations.push({ 
+            type: 'toMany', 
+            isMaster: curItem.isMaster,
+            bucket: oppositeRecType.bucket, 
+            primaryKey: oppositeRecType.primaryKey,
+            propertyName: i }); 
+        }
+        else {
+          if(curItem.kindOf(SC.SingleAttribute)){
+            oppositeRecType = curItem.typeClass().prototype;
+            var reverse = curItem.reverse;
+            // check whether the reverse is a toMany
+            if(reverse && oppositeRecType[reverse] && oppositeRecType[reverse].kindOf(SC.ManyAttribute)){
+              ret.relations.push({ 
+                type: 'toOne', 
+                isMaster: curItem.isMaster,
+                bucket: oppositeRecType.bucket, 
+                primaryKey: oppositeRecType.primaryKey,
+                propertyName: i}); 
+            }
+          }
+          else {
+            // just a normal attribute, push to properties
+            keyName = recType[i].key || i;
+            typeName = ThothSC.getDataType(recType[i].type);
+            ret.properties.push({key: keyName, type: typeName });
+          }
+        } 
+      }
+    }
+    return ret;
+  },
+   
+  getDataType: function(type){
+    var ret = "";
+    if(type == String) ret = "String";
+    if(type == Array) ret = "Array";
+    if(type == Object) ret = "Object";
+    if(type == Number) ret = "Number";
+    if(type == Math) ret = "Math";
+    if(type == Date) ret = "Date";
+    if(type == Boolean) ret = "Boolean";
+    if(type == RegExp) ret = "RegExp";
+    //console.log('data type detected is: ' + ret);
+    //if(ret === "") ret = type.toString();
+    return ret;
   }
   
 });
