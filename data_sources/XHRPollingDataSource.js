@@ -1,3 +1,5 @@
+/*globals ThothSC */
+
 sc_require('data_sources/DataSource');
 sc_require('system/XHRLongPollingRequest');
 
@@ -36,12 +38,21 @@ ThothSC.XHRPollingDataSource = ThothSC.DataSource.extend({
 		return ret;
 	}.property('ThothAuthURL','ThothURLPrefix').cacheable(),
 
+	getTopLevelName: function(){
+		var completeName = this.toString();
+		if(completeName){
+			return completeName.split(".")[0];
+		}
+		else return "";
+	},
+
 	authRequest: function(user,passwd,passwdIsMD5){
 		// for XHRPolling an authRequest is a normal REST POST request
 		var me = this;
 		var url = this.get('authURL');
 		//var baseRequest = {auth:{ user: user, passwd: passwd, passwdIsMD5: passwdIsMD5}};
-		var baseRequest = { user: user, passwd: passwd };
+		var baseRequest = { user: user, passwd: passwd, applicationName: this.getTopLevelName() };
+		SC.Logger.log("name of data source is: " + me.toString());
 		this.user = user;
 		if(this.userData && this.userData.isAuthenticated()) baseRequest.sessionKey = this.userData.sessionKey(this.userData.key()); // resume the session if possible
 		console.log('sending auth request to ' + url);
