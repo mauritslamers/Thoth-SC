@@ -13,7 +13,7 @@ ThothSC.ErrorMessage = SC.SheetPane.extend({
       questionLabel: SC.LabelView.design({
          layout: { top: 30, height: 75, width: 300, centerX: 0 },
          textAlign: SC.ALIGN_CENTER,
-         valueBinding: '*parentView.message'
+         valueBinding: '*owner.parentView.message'
       }),
 
       okButton: SC.ButtonView.design({
@@ -21,7 +21,7 @@ ThothSC.ErrorMessage = SC.SheetPane.extend({
          title: 'Ok',
          isDefault: YES,
          action: 'closeErrorMessage',
-         targetBinding: '*parentView.dataSource'
+         targetBinding: '*owner.parentView.dataSource'
       })
    })
 });
