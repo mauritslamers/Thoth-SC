@@ -100,26 +100,35 @@ SC.mixin(ThothSC, {
     // function to get all RecordAttributes
     // it will separate out the relations and return an object: { properties: [], relations: []}
     var recType = recordType.prototype,
-        ret = { properties: [], relations: [], primaryKey: recType.primaryKey }, 
-        curItem, oppositeRecType, i, keyName, typeName;
+        ret = { properties: [], relations: [], computedProperties: [], primaryKey: recType.primaryKey }, 
+        curItem, oppositeRecType, i, keyName, typeName, itemHandled, funcCode;
     
     for(i in recType){
       curItem = recType[i];
-      if(curItem && curItem.kindOf && curItem.kindOf(SC.RecordAttribute)){      
-        if(curItem.kindOf(SC.ManyAttribute)){
-          // get the opposite record type
-          oppositeRecType = curItem.typeClass().prototype;
-          ret.relations.push({ 
-            type: 'toMany', 
-            isMaster: curItem.isMaster,
-            bucket: oppositeRecType.bucket, 
-            primaryKey: oppositeRecType.primaryKey,
-            propertyName: i }); 
-        }
-        else {
+      if(curItem){
+        if(curItem.kindOf && curItem.kindOf(SC.RecordAttribute)){ 
+          itemHandled = false;
+          if(curItem.kindOf(SC.ManyAttribute)){
+            // get the opposite record type
+            oppositeRecType = curItem.typeClass().prototype;
+            if(oppositeRecType === String.prototype){
+              var msg = "The record type of the toMany relation " + i + " on model " + recordType.toString();
+              msg +=  " was undefined. Hint: use a string to contain the path!";
+              throw new Error(msg);
+            }
+            else {
+              ret.relations.push({ 
+                type: 'toMany', 
+                isMaster: curItem.isMaster,
+                bucket: oppositeRecType.bucket, 
+                primaryKey: oppositeRecType.primaryKey,
+                propertyName: i });              
+            }
+            itemHandled = true;
+          }
           if(curItem.kindOf(SC.SingleAttribute)){
             oppositeRecType = curItem.typeClass().prototype;
-            var reverse = curItem.reverse;
+            var reverse = curItem.inverse;
             // check whether the reverse is a toMany
             if(reverse && oppositeRecType[reverse] && oppositeRecType[reverse].kindOf(SC.ManyAttribute)){
               ret.relations.push({ 
@@ -129,14 +138,26 @@ SC.mixin(ThothSC, {
                 primaryKey: oppositeRecType.primaryKey,
                 propertyName: i}); 
             }
+            itemHandled = true;  
           }
-          else {
+          if(curItem.isRemoteComputedProperty){
+            funcCode = curItem.computation.toString().replace("\t","").replace("\n","");
+            ret.computedProperties.push({ propertyName: i, functionBody: curItem.computation.toString(), dependencies: curItem.dependencies});
+            itemHandled = true;
+          }
+          if(!itemHandled){ 
             // just a normal attribute, push to properties
             keyName = recType[i].key || i;
             typeName = ThothSC.getDataType(recType[i].type);
-            ret.properties.push({key: keyName, type: typeName });
+            ret.properties.push({key: keyName, type: typeName });            
           }
-        } 
+          // 
+        } // end of normal attributes, now find computed properties
+        //else {
+        //  if( (SC.typeOf(curItem) === 'function') && curItem.isProperty && recType.hasOwnProperty(i) ){
+        //    ret.computedProperties.push({ propertyName: i, functionBody: curItem.toString()});
+        //  }
+        //}
       }
     }
     return ret;

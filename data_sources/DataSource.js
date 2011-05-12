@@ -66,6 +66,8 @@ ThothSC.DataSource = SC.DataSource.extend({
 	authenticationPane: null,
 
 	propertyBasedRetrieval: null,
+	
+	sendComputedProperties: null,
 
 	debug: false,
 
@@ -199,7 +201,7 @@ ThothSC.DataSource = SC.DataSource.extend({
 			SC.RunLoop.begin(); // data received in some way, so an event has taken place
 			if(event.data){
 				var messages = (SC.typeOf(event.data) === SC.T_STRING)? JSON.parse(event.data): event.data;
-				//console.log("data in event: " + event.data);
+				console.log("data in event: " + event.data);
 				if(messages){
 					// check if messages is an array, if not, make one
 					var data = (messages instanceof Array)? messages: [messages]; 
@@ -562,26 +564,28 @@ ThothSC.DataSource = SC.DataSource.extend({
          if(!(this.userData && this.userData.isAuthenticated())) return NO; // prevent loading when we are not authenticated
          // build the request
          // first do the basic stuff
-         var request = { fetch: { bucket: bucket }};
+         var requestBody = { bucket: bucket };  
          var numResponses = 1; // the number of responses we expect
          // now check whether there are conditions and if yes, add them
          if(query.conditions){
             // if there are conditions we need to add them to the request
-            request.fetch.conditions = query.conditions;
-            request.fetch.parameters = query.parameters;
+            requestBody.conditions = query.conditions;
+            requestBody.parameters = query.parameters;
          }
          // check on relations and if there are, add them to the request
          var attributeInfo = ThothSC.getAttributes(rectype);
-         request.fetch.primaryKey = attributeInfo.primaryKey;
-         if(this.propertyBasedRetrieval) request.fetch.properties = attributeInfo.properties;
+         requestBody.primaryKey = attributeInfo.primaryKey;
+         if(this.propertyBasedRetrieval) requestBody.properties = attributeInfo.properties;
+         if(this.sendComputedProperties) requestBody.computedProperties = attributeInfo.computedProperties;
          if(attributeInfo.relations.length > 0){
-           request.fetch.relations = attributeInfo.relations;
+           requestBody.relations = attributeInfo.relations;
            numResponses += attributeInfo.relations.length;
          }
          // now add the requestCacheInfo
          var requestKey = this._createRequestCacheKey();
          this._requestCache[requestKey] = { store: store, query: query, numResponses: numResponses };
-         request.fetch.returnData = { requestKey: requestKey };
+         requestBody.returnData = { requestKey: requestKey };
+         var request = { fetch: requestBody };
          if(this.debug) console.log('Sending fetchRequest: ' + JSON.stringify(request));
          this.send(request);      
       }
