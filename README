@@ -1,3 +1,22 @@
 Thoth-SC
 
 a Sproutcore framework for connecting the Thoth server to a SproutCore application
+
+Finishing a complete rewrite of Thoth-SC in order to keep most things out of the data source.
+
+While everything before this rewrite had to be done through the data source, it is now possible
+to use just ThothSC as main entry point for authentication and other function types.
+
+The way the interaction with Thoth is done has changed by introducing a few different handlers:
+
+specialMessageHandlers: 
+   handlers to handle certain messages that have nothing to do with data, but system requests
+   like authentication
+
+dataMessageHandlers: 
+   handlers to handle certain messages having to do with data replies. The data source registers 
+   all the needed messages itself when initialised.
+   
+While different types of traffic clients were previously done by extending a different data source,
+this has now been replaced with external clients, abstracting the traffic specification from the 
+data source.
