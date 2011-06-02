@@ -20,3 +20,6 @@ dataMessageHandlers:
 While different types of traffic clients were previously done by extending a different data source,
 this has now been replaced with external clients, abstracting the traffic specification from the 
 data source.
+
+A cryptographic library has been added (which can also be easily extracted from ThothSC) to encrypt
+passwords or other types of info.
