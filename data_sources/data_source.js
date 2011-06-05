@@ -81,7 +81,7 @@ ThothSC.DataSource = SC.DataSource.extend({
   createBaseRequest: function(recType,record, primaryKey){
     var modelGraph, cps, rels, ret, primKey, rec;
     
-    if(record) rec = record.copy();
+    if(record) rec = SC.copy(record);
     ThothSC.modelCache.store(recType);
     modelGraph = ThothSC.modelCache.modelGraphFor(recType);
     cps = modelGraph.get('computedProperties');
@@ -90,7 +90,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     ret = {
       bucket: modelGraph.get('resource'),
       primaryKey: primKey,
-      key: rec? primaryKey || rec[primKey] || 'id': undefined,
+      key: rec? primaryKey || rec[primKey] : undefined,
       application: ThothSC.getTopLevelName(this),
       properties: this.sendProperties? modelGraph.get('properties'): undefined,
       computedProperties: (this.sendComputedProperties && (cps.length > 0))? cps: undefined,
@@ -341,7 +341,7 @@ ThothSC.DataSource = SC.DataSource.extend({
   
   onCreateRecordResult: function(data){
     var result = data.createRecordResult,
-        requestCache = ThothSC.requestCache.retrieve(data.returnData.requestCacheKey),
+        requestCache = ThothSC.requestCache.retrieve(result.returnData.requestCacheKey),
         storeKey = requestCache.storeKey, store = requestCache.store,
         recType = requestCache.store.recordTypeFor(storeKey),
         relations = requestCache.request.relations,
@@ -354,7 +354,7 @@ ThothSC.DataSource = SC.DataSource.extend({
 		pushResult = store.pushRetrieve(recType,primKeyVal,recordData,storeKey);
 		if(pushResult){
 		  if(relations && (relations.length > 0)){ // update opposite relations
-		    relations.map(function(rel){ ThothSC.updateOppositeRelations(store,storeKey,rel,recordData);});
+		    relations.map(function(rel){ ThothSC.updateOppositeRelation(store,storeKey,rel,recordData);});
 		  }
 		} 
 		else ThothSC.client.appCallback(ThothSC.DS_ERROR_CREATE,"problem with updating the newly created record");
@@ -445,7 +445,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     if(storeKey){
       if(req.relations){
         req.relations.map(function(rel){
-          ThothSC.updateOppositeRelations(this._store,storeKey,rel,req.record);
+          ThothSC.updateOppositeRelation(this._store,storeKey,rel,req.record);
         });
       }
     } else {
