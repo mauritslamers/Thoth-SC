@@ -306,7 +306,7 @@ ThothSC.DataSource = SC.DataSource.extend({
   createRecord: function(store,storeKey,params){
     var recType, record, requestKey, baseReq, primKey, tempId;
     
-    recType = store.recTypeFor(storeKey);
+    recType = store.recordTypeFor(storeKey);
     record = store.readDataHash(storeKey);
     baseReq = this.createBaseRequest(recType,record);
     requestKey = ThothSC.requestCache.store({ store: store, storeKey: storeKey, params: params, request: baseReq });
