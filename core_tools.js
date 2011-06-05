@@ -12,7 +12,7 @@ SC.mixin(ThothSC,{
   
   connect: function(callback){ // callback can/will be called with (event, data)
     var func, toplevel;
-    if(SC.typeOf(callback) !== 'string') throw new Error("connect needs a callback path");
+    if(SC.typeOf(callback) !== 'string') throw new Error("connect needs a callback path, please provide a string");
      
     func = SC.objectForPropertyPath(callback);
     
@@ -21,7 +21,7 @@ SC.mixin(ThothSC,{
         toplevel = callback.substr(0,callback.indexOf("."));
         if(toplevel !== "") window[toplevel].store._getDataSource(); //init DS
       }
-      this.client.appCallback = func;
+      this.client.applicationCallback = func;
       this.client.connect();
       return true;
     }
