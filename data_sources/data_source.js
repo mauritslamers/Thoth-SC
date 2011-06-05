@@ -74,23 +74,30 @@ ThothSC.DataSource = SC.DataSource.extend({
   },
   
   //CRUD operations
-
-  createBaseRequest: function(recType){
-    var modelGraph, cps, rels, ret;
+  // create a base request. 
+  //If record is supplied, primaryKey name and primaryKey value are put on the request
+  //and relations are stripped and keys added to the request
+  //if primaryKey is supplied, it will override the value of the key on the record
+  createBaseRequest: function(recType,record, primaryKey){
+    var modelGraph, cps, rels, ret, primKey, rec;
     
+    if(record) rec = record.copy();
     ThothSC.modelCache.store(recType);
     modelGraph = ThothSC.modelCache.modelGraphFor(recType);
     cps = modelGraph.get('computedProperties');
     rels = modelGraph.get('relations');
+    primKey = modelGraph.get('primaryKey');
     ret = {
       bucket: modelGraph.get('resource'),
-      primaryKey: modelGraph.get('primaryKey'),
+      primaryKey: primKey,
+      key: rec? primaryKey || rec[primKey] || 'id': undefined,
       application: ThothSC.getTopLevelName(this),
       properties: this.sendProperties? modelGraph.get('properties'): undefined,
       computedProperties: (this.sendComputedProperties && (cps.length > 0))? cps: undefined,
       relations: (this.sendRelations && (rels.length>0))? rels: undefined,
       combineReturnCalls: this.combineReturnCalls || undefined
     };    
+    if(record) ret.record = ThothSC.stripRelations(ret,record);
     return ret;
   },
   
@@ -217,30 +224,32 @@ ThothSC.DataSource = SC.DataSource.extend({
       }
       requestCache.store.dataSourceDidErrorQuery(requestCache.query);
       ThothSC.requestCache.destroy(requestCacheKey);
-      ThothSC.client.appCallback(ThothSC.DS_ERROR);
+      ThothSC.client.appCallback(ThothSC.DS_ERROR_FETCH, message);
     }
   },
   
   retrieveRecord: function(store,storeKey,id){
     var recType = store.recordTypeFor(storeKey);
     var baseReq = this.createBaseRequest(recType);
+    var recId = id? id: store.idFor(storeKey);
     var cacheObj = { 
       store: store, 
       recordType: recType, 
       storeKey: storeKey,
-      id: id? id: store.idFor(storeKey),
+      id: recId,
       numResponses: this.getNumberOfResponses(baseReq)
     };
     var requestKey = ThothSC.requestCache.store(cacheObj);
     baseReq.returnData = { requestCacheKey: requestKey };
-    ThothSC.send({ refreshRecord: baseReq });
+    baseReq.key = recId;
+    ThothSC.client.send({ refreshRecord: baseReq });
     return true;
   },
   
   // this is mainly the same setup as with onFetchResult, only with a single record and no dataSourceDidComplete
   // as ThothSC.loadRecord will take care of the needed actions.
   onRefreshRecordResult: function(data){
-    var refreshResult = data.refreshResult;
+    var refreshResult = data.refreshRecordResult;
     var requestKey = refreshResult.returnData.requestCacheKey;
     var reqC = ThothSC.requestCache.retrieve(requestKey);
     var mergedData;
@@ -287,6 +296,195 @@ ThothSC.DataSource = SC.DataSource.extend({
       store.dataSourceDidError(storeKey);
       ThothSC.requestCache.destroy(requestCacheKey);
       ThothSC.client.appCallback(ThothSC.DS_ERROR, message);
+    }
+  },
+  
+  
+  // difference with the previous implementation: 
+  // the function immediately sets the record with a temp id,
+  // the return function will either destroy it again (error), or update it with the 'proper' id
+  createRecord: function(store,storeKey,params){
+    var recType, record, requestKey, baseReq, primKey, tempId;
+    
+    recType = store.recTypeFor(storeKey);
+    record = store.readDataHash(storeKey);
+    baseReq = this.createBaseRequest(recType,record);
+    requestKey = ThothSC.requestCache.store({ store: store, storeKey: storeKey, params: params, request: baseReq });
+    baseReq.returnData = { requestCacheKey: requestKey };
+    ThothSC.client.send({ createRecord: baseReq});
+    // now give the store the record back with a temp id
+    primKey = recType.prototype.primaryKey;
+    tempId = "@" + requestKey;
+    if(primKey) record[primKey] = tempId;
+    store.dataSourceDidComplete(storeKey,record,tempId);
+    return YES;
+  },
+  
+  onCreateRecordError: function(data){
+    var error = data.createRecordError,
+        errorCode, requestCache, message, recType;
+    
+    if(error){
+      errorCode = error.errorCode;
+      requestCache = ThothSC.requestCache.retrieve(error.returnData.requestCacheKey);
+      switch(errorCode){
+         case 0: 
+          message = "The policy settings on the server don't allow you to create this record"; 
+          requestCache.store.removeDataHash(requestCache.storeKey,SC.Record.DESTROYED_CLEAN);
+          requestCache.store.dataHashDidChange(requestCache.storeKey);
+          break;
+      }
+      ThothSC.requestCache.destroyObject(requestCache);
+      ThothSC.client.appCallback(ThothSC.DS_ERROR_CREATE, message);
+    }
+  },
+  
+  onCreateRecordResult: function(data){
+    var result = data.createRecordResult,
+        requestCache = ThothSC.requestCache.retrieve(data.returnData.requestCacheKey),
+        storeKey = requestCache.storeKey, store = requestCache.store,
+        recType = requestCache.store.recordTypeFor(storeKey),
+        relations = requestCache.request.relations,
+        recordData = result.record,
+        primKey = requestCache.request.primaryKey || recType.prototype.primaryKey || result.primaryKey || 'id',
+        primKeyVal = result.key || recordData[primKey],
+        pushResult;
+    
+    if(this.debug) SC.Logger.log('ThothSC onCreateRecordResult: ' + JSON.stringify(data));
+		pushResult = store.pushRetrieve(recType,primKeyVal,recordData,storeKey);
+		if(pushResult){
+		  if(relations && (relations.length > 0)){ // update opposite relations
+		    relations.map(function(rel){ ThothSC.updateOppositeRelations(store,storeKey,rel,recordData);});
+		  }
+		} 
+		else ThothSC.client.appCallback(ThothSC.DS_ERROR_CREATE,"problem with updating the newly created record");
+		ThothSC.requestCache.destroyObject(requestCache);
+  },
+  
+  updateRecord: function(store,storeKey,params){
+    var recType = store.recordTypeFor(storeKey),
+        record = store.readDataHash(storeKey),
+        baseReq = this.createBaseRequest(recType,record),
+        numResponses = 1, requestKey;
+        
+    //if(this.combineReturnCalls && baseReq.relations) numResponses += baseReq.relations.length;
+    requestKey = ThothSC.requestCache.store({ store: store, storeKey: storeKey, params: params, request: baseReq, numResponses: numResponses });
+    baseReq.returnData = { requestCacheKey: requestKey};
+    ThothSC.client.send({updateRecord: baseReq});
+    return YES;
+  },
+  
+  onUpdateRecordError: function(data){
+    var error = data.updateRecordError,
+        requestCache, errorCode, message;
+        
+    if(error){
+      errorCode = error.errorCode;
+      requestCache = ThothSC.requestCache.retrieve(error.returnData.requestCacheKey);
+      switch(errorCode){
+         case 0: message = "The policy settings on the server don't allow you to update this record"; break;
+         case 1: message = "There has been a data inconsistency between the server and your application."; break;
+      }
+      requestCache.store.dataSourceDidError(requestCache.storeKey);
+      ThothSC.requestCache.destroyObject(requestCache);
+      ThothSC.client.appCallback(ThothSC.DS_ERROR_UPDATE, message);
+    }
+  },
+  
+  onUpdateRecordResult: function(data){
+    var result = data.updateRecordResult,
+        requestCache = ThothSC.requestCache.retrieve(result.returnData.requestCacheKey);
+    
+    requestCache.store.dataSourceDidComplete(requestCache.storeKey,result.record);
+    ThothSC.requestCache.destroyObject(requestCache);
+  },
+  
+  destroyRecord: function(store,storeKey,params){
+    var recType = store.recordTypeFor(storeKey),
+        record = store.readDataHash(storeKey),
+        baseReq = this.createBaseRequest(recType,record),
+        requestKey;
+        
+    requestKey = ThothSC.requestCache.store({ store: store, storeKey: storeKey, params: params });
+    baseReq.returnData = { requestCacheKey: requestKey };
+    ThothSC.client.send({deleteRecord: baseReq});
+    return true;
+  },
+  
+  onDeleteRecordError: function(data){
+    var error = data.deleteRecordError,
+        errorCode = error.errorCode, 
+        requestCache = ThothSC.requestCache.retrieve(error.returnData.requestCacheKey), message;
+        
+    switch(errorCode){
+       case 0: message = "The policy settings on the server don't allow you to delete this record"; break;
+       case 1: message = "There has been a data inconsistency between the server and your application."; break;            
+    }
+    requestCache.store.dataSourceDidError(requestCache.storeKey);
+    ThothSC.client.appCallback(ThothSC.DS_ERROR_DELETE, message);
+    ThothSC.requestCache.destroyObject(requestCache);
+  },
+  
+  onDeleteRecordResult: function(data){
+    var result = data.deleteRecordResult,
+        requestCache = ThothSC.requestCache.retrieve(result.returnData.requestCacheKey);
+        
+    requestCache.store.dataSourceDidDestroy(requestCache.storeKey);
+    ThothSC.requestCache.destroyObject(requestCache);
+  },
+  
+  onPushedCreateRecord: function(data){
+    var req = data.createRecord,
+        resource = req.bucket, key = req.key,
+        message = "The server has tried to push a createRecord request to your application, but isn't allowed to store it",
+        recType, storeKey;
+    
+    recType = ThothSC.modelCache.modelFor(resource);
+    if(!recType) return; // ignore
+    storeKey = this._store.pushRetrieve(recType,key,req.record);
+    if(storeKey){
+      if(req.relations){
+        req.relations.map(function(rel){
+          ThothSC.updateOppositeRelations(this._store,storeKey,rel,req.record);
+        });
+      }
+    } else {
+      ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHCREATE,message);
+    }
+  },
+
+
+  onPushedUpdateRecord: function(data){
+    var req = data.updateRecord,
+        rec = req.record,
+        ret,msg,
+        resource = req.bucket, key = req.key,
+        recType = ThothSC.modelCache.modelFor(resource);
+    
+    if(req.relations){
+      req.relations.forEach(function(rel){
+        if((rel.type === 'toMany') && rel.propertyName){
+          rec[rel.propertyName] = rel.keys;
+        }
+      });
+      ret = this._store.pushRetrieve(recType,key,rec);
+      if(!ret){
+        msg ="The server has tried to update a record in your application, but wasn't allowed to do so!";
+        ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHUPDATE, msg);
+      }
+    }
+  },
+  
+  onPushedDeleteRecord: function(data){
+    var req = data.deleteRecord,
+        resource = req.bucket, key = req.key,
+        recType = ThothSC.modelCache.modelFor(resource),
+        ret, msg;
+    
+    ret = this._store.pushDestroy(recType,key);
+    if(!ret){
+      msg = "The server has tried to delete a record from your application, but wasn't allowed to do so!";
+      ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHDELETE, msg);
     }
   }
   

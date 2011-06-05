@@ -72,6 +72,50 @@ SC.mixin(ThothSC,{
      }
      //SC.Logger.log("returning: " + JSON.stringify(ret));
      return ret;
+  },
+  
+  stripRelations: function(baseRequest,record){
+    if(baseRequest.relations){
+      baseRequest.relations.forEach(function(rel){
+        if(record[rel.propertyName]){
+          rel.keys = record[rel.propertyName];
+          delete record[rel.propertyName];
+        } 
+      }); 
+    }
+    return record;
+  },
+  
+  // while Thoth returns the id(s) of this side of the relation, we also need to update the hash on the other 
+  // side of the relation. So, what we need to do here is to find the record(s) to which are pointed and update 
+  // them accordingly.
+  // two cases: if opposite side is a toOne: set the key, if a toMany, push or create the array
+  // needed: the opposite record type, the id of the op rec, the storeKey to get the hash, the propertyName on the opposite and the id to 
+  // set it to
+  updateOppositeRelation: function(store,storeKey,relation,recordData){
+    var recordType = store.recordTypeFor(storeKey);
+    //console.log('updating opposite relation for ' + recordType.toString());
+    var recType = recordType.prototype;
+    var idToAdd = recordData[recType.primaryKey];
+    var oppRecType = recType[relation.propertyName].typeClass();
+    //console.log('opposite record type is: ' + oppRecType.toString());
+    var relKeys = (!(relation.keys instanceof Array))? [relation.keys]: relation.keys;
+    var oppProperty = recType[relation.propertyName].oppositeProperty;
+    //console.log('opposite property is: ' + oppProperty);
+    if(!oppProperty) return; // nothing to do when no opposite property has been defined...
+    
+    relKeys.map(function(relKey){
+      var hash,prop;
+      var sK = oppRecType.storeKeyFor(relKey);
+      //console.log('storeKey of oppositeRec = ' + sK);
+      if(sK){ 
+        hash = store.readDataHash(sK);
+        prop = hash[oppProperty];
+        if(prop instanceof Array) prop.push(idToAdd);
+        else hash[oppProperty] = idToAdd;
+        store.pushRetrieve(oppRecType,relKey,hash);
+      }
+    });
   }
 	
 	
