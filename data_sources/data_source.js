@@ -113,7 +113,7 @@ ThothSC.DataSource = SC.DataSource.extend({
   
   getNumberOfResponses: function(baseRequest){
     var ret = 1;
-    if(!this.combineReturnCalls){
+    if(!this.combineReturnCalls && baseRequest.relations){
       ret += baseRequest.relations.length;
     }
     return ret;
