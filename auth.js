@@ -39,7 +39,8 @@ SC.mixin(ThothSC,{
         sessionKey = m.authSuccess.sessionKey;
         role = m.authSuccess.role;
         me.client.userData = ThothSC.userDataCreator({ user: user, sessionKey: sessionKey, role: role });
-        ret = { authSuccess: {}};
+        me.client.isAuthenticated = true;
+        ret = { authSuccess: {} };
         callback(ret);
         return true;
       }
@@ -50,7 +51,7 @@ SC.mixin(ThothSC,{
     };
     
     this.client.registerSpecialMessageHandler(cb);
-    this.client.send({ auth: loginInfo});
+    this.client.send({ auth: loginInfo });
   },
   
   logoutRequest: function(){
