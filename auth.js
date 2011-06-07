@@ -44,7 +44,11 @@ SC.mixin(ThothSC,{
         callback(ret);
         return true;
       }
-      else if(m.authError){
+      if(m.authError){
+        callback(m);
+        return true;
+      }
+      if(m.authFailure){
         callback(m);
         return true;
       }
