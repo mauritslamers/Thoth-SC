@@ -58,8 +58,18 @@ SC.mixin(ThothSC,{
     this.client.send({ auth: loginInfo });
   },
   
-  logoutRequest: function(){
+  sendLogoutRequest: function(){
+    var userData = this.client.userData;
+    if(userData){
+      this.client.send({ logOut: { user: userData.user(userData.key()), sessionKey: userData.sessionKey(userData.key())}});      
+    }
+
+
     /*
+    if(this.userData && this.userData.isAuthenticated()){
+			this.send({ logOut: { user: this.userData.user(this.userData.key()), sessionKey: this.userData.sessionKey(this.userData.key()) }});       
+		}
+		else console.log('Trying to logout, but not logged in');
 		if(m.logoutSuccess){
 			me.onLogoutSuccess.call(me,m.logoutSuccess);
 			return true; 
