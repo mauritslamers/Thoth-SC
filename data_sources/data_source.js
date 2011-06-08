@@ -437,7 +437,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     var req = data.createRecord,
         resource = req.bucket, key = req.key,
         message = "The server has tried to push a createRecord request to your application, but isn't allowed to store it",
-        recType, storeKey;
+        recType, storeKey, me = this;
     
     recType = ThothSC.modelCache.modelFor(resource);
     if(!recType) return; // ignore
@@ -445,7 +445,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     if(storeKey){
       if(req.relations){
         req.relations.map(function(rel){
-          ThothSC.updateOppositeRelation(this._store,storeKey,rel,req.record);
+          ThothSC.updateOppositeRelation(me._store,storeKey,rel,req.record);
         });
       }
     } else {
