@@ -93,17 +93,17 @@ SC.mixin(ThothSC,{
   // needed: the opposite record type, the id of the op rec, the storeKey to get the hash, the propertyName on the opposite and the id to 
   // set it to
   updateOppositeRelation: function(store,storeKey,relation,recordData){
-    var recordType = store.recordTypeFor(storeKey);
-    //console.log('updating opposite relation for ' + recordType.toString());
-    var recType = recordType.prototype;
-    var idToAdd = recordData[recType.primaryKey];
-    var oppRecType = recType[relation.propertyName].typeClass();
-    //console.log('opposite record type is: ' + oppRecType.toString());
-    var relKeys = (!(relation.keys instanceof Array))? [relation.keys]: relation.keys;
-    var oppProperty = recType[relation.propertyName].oppositeProperty;
-    //console.log('opposite property is: ' + oppProperty);
+    var recordType = store.recordTypeFor(storeKey),
+        recType = recordType.prototype,
+        idToAdd = recordData[recType.primaryKey],
+        opRecType = recType[relation.propertyName].typeClass(),
+        oppProperty = recType[relation.propertyName].oppositeProperty,
+        relKeys;
+        
     if(!oppProperty) return; // nothing to do when no opposite property has been defined...
-    
+    if(!relation.keys) return; // don't try to add anything if the keys don't exist
+    else relKeys = (!(relation.keys instanceof Array))? [relation.keys]: relation.keys;
+
     relKeys.map(function(relKey){
       var hash,prop;
       var sK = oppRecType.storeKeyFor(relKey);
