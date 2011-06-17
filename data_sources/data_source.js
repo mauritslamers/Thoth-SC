@@ -91,6 +91,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       bucket: modelGraph.get('resource'),
       primaryKey: primKey,
       key: rec? primaryKey || rec[primKey] : undefined,
+      _revision: rec? rec['_revision']: undefined,
       application: ThothSC.getTopLevelName(this),
       properties: this.sendProperties? modelGraph.get('properties'): undefined,
       computedProperties: (this.sendComputedProperties && (cps.length > 0))? cps: undefined,
