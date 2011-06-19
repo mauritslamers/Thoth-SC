@@ -170,9 +170,8 @@ ThothSC.DataSource = SC.DataSource.extend({
   // This works as follows: 
   // step 1:  if the fetchresult contains a relation set and no records have been received yet (no storeKeys),
   //          the relations are stored in the requestCache
-  // step 2:  if there are no storeKeys in the cache and the fetchResult contains records, check if there are 
-  //          relations and merge them with the records, else take the records from the fetch result, and 
-  //          update the store
+  // step 2:  if the fetchResult contains records, check if there are relations and merge them with the records, 
+  //          else take the records from the fetch result, and update the store. 
   // step 3:  if there are storeKeys in the cache and we have a relationSet, merge.
   // step 4:  if this request was the last one, finish off
   onFetchResult: function(data){
@@ -187,8 +186,9 @@ ThothSC.DataSource = SC.DataSource.extend({
         if(!requestCache.unsavedRelations) requestCache.unsavedRelations = fetchResult.relationSet;
         else requestCache.unsavedRelations.pushObjects(fetchResult.relationSet);
         if(!this.combinedReturnCalls) requestCache.numResponses -= 1;
-      }
-      if(!requestCache.storeKeys && fetchResult.records){
+      }  
+      //if(!requestCache.storeKeys && fetchResult.records){
+      if(fetchResult.records){
         if(requestCache.unsavedRelations){
           records = ThothSC.mergeRelationSet(requestCache.recordType,fetchResult.records,requestCache.unsavedRelations);
           delete requestCache.unsavedRelations;
@@ -204,7 +204,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       if((this.combinedReturnCalls && requestCache.numResponses === 1) ||
             (!this.combinedReturnCalls && requestCache.numResponses === 0)){
         if(this.debug) console.log('ThothSC: finishing off Fetch request');
-        requestCache.store.dataSourceDidFetchQuery(requestCache.query);
+        if(requestCache.query) requestCache.store.dataSourceDidFetchQuery(requestCache.query);
         ThothSC.requestCache.destroy(requestKey);
       }    
     }
@@ -227,6 +227,23 @@ ThothSC.DataSource = SC.DataSource.extend({
       ThothSC.requestCache.destroy(requestCacheKey);
       ThothSC.client.appCallback(ThothSC.DS_ERROR_FETCH, message);
     }
+  },
+  
+  retrieveRecords: function(store,storeKeys,ids){
+    //hmm can we be sure that the record type for these storeKeys are all the same...
+    //I would suspect yes...
+    var recType, baseReq, recId, cacheObj, requestKey;
+    
+    if(storeKeys.length > 0){
+      recType = store.recordTypeFor(storeKeys[0]);
+      baseReq = this.createBaseRequest(recType);
+      baseReq.keys = ids;
+      cacheObj = { store: store, recordType: recType, storeKeys: storeKeys };
+      requestKey = ThothSC.requestCache.store(cacheObj);
+      baseReq.returnData = { requestCacheKey: requestKey };
+      ThothSC.client.send({ fetch: baseReq });
+    }
+    return true;
   },
   
   retrieveRecord: function(store,storeKey,id){
