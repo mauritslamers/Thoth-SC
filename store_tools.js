@@ -96,7 +96,7 @@ SC.mixin(ThothSC,{
     var recordType = store.recordTypeFor(storeKey),
         recType = recordType.prototype,
         idToAdd = recordData[recType.primaryKey],
-        opRecType = recType[relation.propertyName].typeClass(),
+        oppRecType = recType[relation.propertyName].typeClass(),
         oppProperty = recType[relation.propertyName].oppositeProperty,
         relKeys;
         
