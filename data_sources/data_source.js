@@ -329,12 +329,12 @@ ThothSC.DataSource = SC.DataSource.extend({
     baseReq = this.createBaseRequest(recType,record);
     requestKey = ThothSC.requestCache.store({ store: store, storeKey: storeKey, params: params, request: baseReq });
     baseReq.returnData = { requestCacheKey: requestKey };
-    ThothSC.client.send({ createRecord: baseReq});
     // now give the store the record back with a temp id
     primKey = recType.prototype.primaryKey;
     tempId = "@" + requestKey;
     if(primKey) record[primKey] = tempId;
     store.dataSourceDidComplete(storeKey,record,tempId);
+    ThothSC.client.send({ createRecord: baseReq});
     return YES;
   },
   
@@ -462,7 +462,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     storeKey = this._store.pushRetrieve(recType,key,req.record);
     if(storeKey){
       if(req.relations){
-        req.relations.map(function(rel){
+        req.relations.forEach(function(rel){
           ThothSC.updateOppositeRelation(me._store,storeKey,rel,req.record);
         });
       }
