@@ -333,6 +333,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     primKey = recType.prototype.primaryKey;
     tempId = "@" + requestKey;
     if(primKey) record[primKey] = tempId;
+    store.dataSourceDidComplete(storeKey,record,tempId);
     ThothSC.client.send({ createRecord: baseReq});
     return YES;
   },
