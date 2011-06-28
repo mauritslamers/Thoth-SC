@@ -98,7 +98,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       relations: (this.sendRelations && (rels.length>0))? rels: undefined,
       combineReturnCalls: this.combineReturnCalls || undefined
     };    
-    if(record) ret.record = ThothSC.stripRelations(ret,record);
+    if(record) ret.record = ThothSC.stripRelations(ret,rec);
     return ret;
   },
   
@@ -333,7 +333,6 @@ ThothSC.DataSource = SC.DataSource.extend({
     primKey = recType.prototype.primaryKey;
     tempId = "@" + requestKey;
     if(primKey) record[primKey] = tempId;
-    store.dataSourceDidComplete(storeKey,record,tempId);
     ThothSC.client.send({ createRecord: baseReq});
     return YES;
   },
