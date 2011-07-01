@@ -236,13 +236,18 @@ ThothSC.DataSource = SC.DataSource.extend({
     var recType, baseReq, recId, cacheObj, requestKey;
     
     if(storeKeys.length > 0){
-      recType = store.recordTypeFor(storeKeys[0]);
-      baseReq = this.createBaseRequest(recType);
-      baseReq.keys = ids;
-      cacheObj = { store: store, recordType: recType, storeKeys: storeKeys };
-      requestKey = ThothSC.requestCache.store(cacheObj);
-      baseReq.returnData = { requestCacheKey: requestKey };
-      ThothSC.client.send({ fetch: baseReq });
+      if(storeKeys.length === 1){ // store always calls retrieveRecords, even for only one record
+        this.retrieveRecord(store,storeKeys[0],ids[0]);
+      }
+      else {
+        recType = store.recordTypeFor(storeKeys[0]);
+        baseReq = this.createBaseRequest(recType);
+        baseReq.keys = ids;
+        cacheObj = { store: store, recordType: recType, storeKeys: storeKeys };
+        requestKey = ThothSC.requestCache.store(cacheObj);
+        baseReq.returnData = { requestCacheKey: requestKey };
+        ThothSC.client.send({ fetch: baseReq });
+      }
     }
     return true;
   },
