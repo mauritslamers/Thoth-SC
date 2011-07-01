@@ -25,10 +25,11 @@ ThothSC.DataSource = SC.DataSource.extend({
   _store: null,
   
   init: function(){
-    sc_super();
+    arguments.callee.base.apply(this, arguments);
     switch(this.connectUsing){
       case ThothSC.WEBSOCKET: ThothSC.client = ThothSC.WebSocketClient.create(); break;
       case ThothSC.XHRPOLLING: ThothSC.client = ThothSC.XHRPollingClient.create(); break;
+      case ThothSC.FAKE: ThothSC.client = ThothSC.FakeClient.create(); break;
       default: throw new Error("ThothSC init without a traffic specification!");
     }
     ThothSC.client.dataSource = this; // hook up ourselves in the client
@@ -371,6 +372,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     if(this.debug) SC.Logger.log('ThothSC onCreateRecordResult: ' + JSON.stringify(data));
 		pushResult = store.pushRetrieve(recType,primKeyVal,recordData,storeKey);
 		if(pushResult){
+		  if(store.idFor(storeKey) !== primKeyVal) SC.Store.replaceIdFor(storeKey,primKeyVal); // workaround for a (possible) bug in the store
 		  if(relations && (relations.length > 0)){ // update opposite relations
 		    relations.map(function(rel){ ThothSC.updateOppositeRelation(store,storeKey,rel,recordData);});
 		  }
