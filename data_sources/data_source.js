@@ -480,7 +480,6 @@ ThothSC.DataSource = SC.DataSource.extend({
     }
   },
 
-
   onPushedUpdateRecord: function(data){
     var req = data.updateRecord,
         rec = req.record,
@@ -512,6 +511,10 @@ ThothSC.DataSource = SC.DataSource.extend({
         recType = ThothSC.modelCache.modelFor(resource),
         ret, msg;
     
+    if(!resource || !recType || !key){
+      ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHUPDATE,"invalid push delete request");
+      return;      
+    }
     ret = this._store.pushDestroy(recType,key);
     if(!ret){
       msg = "The server has tried to delete a record from your application, but wasn't allowed to do so!";
