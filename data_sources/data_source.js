@@ -70,7 +70,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     };
     
     for(i=0;i<len;i+=1){
-      client.registerDataMessageHandler(cbCreator(msgs[i][0],msgs[i][1]));
+      client.registerDataMessageHandler(cbCreator(msgs[i][0],msgs[i][1]),msgs[i][0]);
     }
   },
   
@@ -467,7 +467,8 @@ ThothSC.DataSource = SC.DataSource.extend({
     
     recType = ThothSC.modelCache.modelFor(resource);
     if(!recType) return; // ignore
-    storeKey = this._store.pushRetrieve(recType,key,req.record);
+    storeKey = this._store.pushRetrieve(recType,key,req.record); 
+    // pushing will only happen when we registered for record(types) with a fetch, which sets this._store
     if(storeKey){
       if(req.relations){
         req.relations.forEach(function(rel){
@@ -493,11 +494,15 @@ ThothSC.DataSource = SC.DataSource.extend({
           rec[rel.propertyName] = rel.keys;
         }
       });
-      ret = this._store.pushRetrieve(recType,key,rec);
-      if(!ret){
-        msg ="The server has tried to update a record in your application, but wasn't allowed to do so!";
-        ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHUPDATE, msg);
-      }
+    }
+    if(!rec || !recType || !key){
+      ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHUPDATE,"invalid push update request");
+      return;
+    }
+    ret = this._store.pushRetrieve(recType,key,rec);
+    if(!ret){
+      msg ="The server has tried to update a record in your application, but wasn't allowed to do so!";
+      ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHUPDATE, msg);
     }
   },
   
