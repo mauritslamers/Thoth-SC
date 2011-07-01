@@ -237,7 +237,8 @@ ThothSC.DataSource = SC.DataSource.extend({
     
     if(storeKeys.length > 0){
       if(storeKeys.length === 1){ // store always calls retrieveRecords, even for only one record
-        this.retrieveRecord(store,storeKeys[0],ids[0]);
+        recId = ids? ids[0]: null;
+        this.retrieveRecord(store,storeKeys[0],recId);
       }
       else {
         recType = store.recordTypeFor(storeKeys[0]);
