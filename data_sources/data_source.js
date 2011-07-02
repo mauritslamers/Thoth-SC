@@ -86,7 +86,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     ThothSC.modelCache.store(recType);
     modelGraph = ThothSC.modelCache.modelGraphFor(recType);
     cps = modelGraph.get('computedProperties');
-    rels = modelGraph.get('relations');
+    rels = modelGraph.relationsFor(record);
     primKey = modelGraph.get('primaryKey');
     ret = {
       bucket: modelGraph.get('resource'),
@@ -375,12 +375,12 @@ ThothSC.DataSource = SC.DataSource.extend({
         primKeyVal = result.key || recordData[primKey],
         pushResult;
     
-    if(this.debug) SC.Logger.log('ThothSC onCreateRecordResult: ' + JSON.stringify(data));
+    if(this.debug) SC.Logger.log('ThothSC onCreateRecordResult: ' + JSON.stringify(data));    
 		pushResult = store.pushRetrieve(recType,primKeyVal,recordData,storeKey);
 		if(pushResult){
 		  if(store.idFor(storeKey) !== primKeyVal) SC.Store.replaceIdFor(storeKey,primKeyVal); // workaround for a (possible) bug in the store
 		  if(relations && (relations.length > 0)){ // update opposite relations
-		    relations.map(function(rel){ ThothSC.updateOppositeRelation(store,storeKey,rel,recordData);});
+		    relations.forEach(function(rel){ ThothSC.updateOppositeRelation(store,storeKey,rel,recordData);});
 		  }
 		} 
 		else ThothSC.client.appCallback(ThothSC.DS_ERROR_CREATE,"problem with updating the newly created record");
