@@ -463,7 +463,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     var req = data.createRecord,
         resource = req.bucket, key = req.key,
         relations = req.relations, 
-        record = req.record;
+        record = req.record,
         message = "The server has tried to push a createRecord request to your application, but isn't allowed to store it",
         recType, storeKey, me = this;
     
