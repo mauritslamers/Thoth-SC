@@ -462,12 +462,19 @@ ThothSC.DataSource = SC.DataSource.extend({
   onPushedCreateRecord: function(data){
     var req = data.createRecord,
         resource = req.bucket, key = req.key,
+        relations = req.relations, 
+        record = req.record;
         message = "The server has tried to push a createRecord request to your application, but isn't allowed to store it",
         recType, storeKey, me = this;
     
     recType = ThothSC.modelCache.modelFor(resource);
     if(!recType) return; // ignore
-    storeKey = this._store.pushRetrieve(recType,key,req.record); 
+    if(relations){ // merge relation data if present
+      relations.forEach(function(rel){
+        ThothSC.mergeRelation(rel,record);
+      });
+    }
+    storeKey = this._store.pushRetrieve(recType,key,req.record); // save
     // pushing will only happen when we registered for record(types) with a fetch, which sets this._store
     if(storeKey){
       if(req.relations){

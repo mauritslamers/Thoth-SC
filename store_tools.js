@@ -86,6 +86,18 @@ SC.mixin(ThothSC,{
     return record;
   },
   
+  mergeRelation: function(relation,record){
+    var keys = relation.keys,
+        propName = relation.propertyName;
+        
+    if(keys && propName){
+      if(!record[propName]){ // don't overwrite
+        record[propName] = keys;
+      }
+    }
+    return record;
+  },
+  
   // while Thoth returns the id(s) of this side of the relation, we also need to update the hash on the other 
   // side of the relation. So, what we need to do here is to find the record(s) to which are pointed and update 
   // them accordingly.
