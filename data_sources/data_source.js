@@ -364,7 +364,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     }
   },
   
-  onCreateRecordResult: function(data){
+  onCreateRecordResult: function(data){  
     var result = data.createRecordResult,
         requestCache = ThothSC.requestCache.retrieve(result.returnData.requestCacheKey),
         storeKey = requestCache.storeKey, store = requestCache.store,
