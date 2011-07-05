@@ -240,7 +240,7 @@ ThothSC.DataSource = SC.DataSource.extend({
         recId = ids? ids[0]: null;
         this.retrieveRecord(store,storeKeys[0],recId);
       }
-      else {
+      else { // we assume here that the model for all records to retrieve is the same
         recType = store.recordTypeFor(storeKeys[0]);
         baseReq = this.createBaseRequest(recType);
         baseReq.keys = ids;
@@ -375,7 +375,7 @@ ThothSC.DataSource = SC.DataSource.extend({
         primKeyVal = result.key || recordData[primKey],
         pushResult;
     
-    if(this.debug) SC.Logger.log('ThothSC onCreateRecordResult: ' + JSON.stringify(data));    
+    if(this.debug) SC.Logger.log('ThothSC onCreateRecordResult: ' + JSON.stringify(data));
 		pushResult = store.pushRetrieve(recType,primKeyVal,recordData,storeKey);
 		if(pushResult){
 		  if(store.idFor(storeKey) !== primKeyVal) SC.Store.replaceIdFor(storeKey,primKeyVal); // workaround for a (possible) bug in the store
