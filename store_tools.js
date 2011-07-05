@@ -111,12 +111,8 @@ SC.mixin(ThothSC,{
         oppRecType = recType[relation.propertyName].typeClass(),
         oppProperty = recType[relation.propertyName].oppositeProperty,
         relKeys;
-        
-    if(!oppProperty) return; // nothing to do when no opposite property has been defined...
-    if(!relation.keys) return; // don't try to add anything if the keys don't exist
-    else relKeys = (!(relation.keys instanceof Array))? [relation.keys]: relation.keys;
-
-    relKeys.map(function(relKey){
+    
+    var updater = function(relKey){
       var hash,prop;
       var sK = oppRecType.storeKeyFor(relKey);
       //console.log('storeKey of oppositeRec = ' + sK);
@@ -126,8 +122,14 @@ SC.mixin(ThothSC,{
         if(prop instanceof Array) prop.push(idToAdd);
         else hash[oppProperty] = idToAdd;
         store.pushRetrieve(oppRecType,relKey,hash);
-      }
-    });
+      }      
+    };
+        
+    if(!oppProperty) return; // nothing to do when no opposite property has been defined...
+    if(!relation.keys) return; // don't try to add anything if the keys don't exist
+    else relKeys = (!(relation.keys instanceof Array))? [relation.keys]: relation.keys;
+    
+    relKeys.forEach(updater);
   }
 	
 	
