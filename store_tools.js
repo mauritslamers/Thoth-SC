@@ -125,7 +125,9 @@ SC.mixin(ThothSC,{
       }      
     };
         
+    if(!relation.isUpdatable) return; // if we shouldn't update this one, we shouldn't update this one
     if(!oppProperty) return; // nothing to do when no opposite property has been defined...
+    
     if(!relation.keys) return; // don't try to add anything if the keys don't exist
     else relKeys = (!(relation.keys instanceof Array))? [relation.keys]: relation.keys;
     
