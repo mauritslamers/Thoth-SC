@@ -98,6 +98,51 @@ SC.mixin(ThothSC,{
     return record;
   },
   
+  updateOppositeRelations: function(store,storeKey,recordData,isRemove){
+    var recordType = store.recordTypeFor(storeKey),
+        modelGraph = ThothSC.modelCache.modelGraphFor(recordType),
+        relations = modelGraph.get('relations'),
+        recType = recordType.prototype,
+        recId = recordData[recType.primaryKey];
+    
+    var relParser = function(rel){
+      var oppSide, oppRecType, oppProperty,relKeys;
+
+      var updater = function(relKey){
+        var hash,prop;
+        var sK = oppRecType.storeKeyFor(relKey);
+        //console.log('storeKey of oppositeRec = ' + sK);
+        if(sK){ 
+          hash = store.readDataHash(sK);
+          prop = hash[oppProperty];
+          if(!isRemove){
+            if(prop instanceof Array) prop.push(recId);
+            else hash[oppProperty] = recId;                
+          }
+          else {
+            if(prop instanceof Array) prop = prop.without(recId);
+            else hash[oppProperty] = null;
+          }
+          store.pushRetrieve(oppRecType,relKey,hash);
+        }      
+      };
+      
+      if(!rel.isUpdatable) return; // if we shouldn't update this one, we shouldn't update this one
+
+      oppSide = recType[rel.propertyName];
+      oppRecType = oppSide.typeClass();
+      oppProperty = oppSide.oppositeProperty;          
+
+      if(!oppProperty) return; // nothing to do when no opposite property has been defined...
+      if(!rel.keys) return; // don't try to add anything if the keys don't exist
+      else relKeys = (!(rel.keys instanceof Array))? [rel.keys]: rel.keys;
+      
+      relKeys.forEach(updater);
+    };
+        
+    relations.forEach(relParser);      
+  },
+  
   // while Thoth returns the id(s) of this side of the relation, we also need to update the hash on the other 
   // side of the relation. So, what we need to do here is to find the record(s) to which are pointed and update 
   // them accordingly.
