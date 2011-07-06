@@ -77,6 +77,32 @@ SC.mixin(ThothSC,{
     console.log('start time: ' + start);
     console.log('end time: ' + end);
     console.log('time difference: ' + (end - start));
+  },
+  
+  copy: function(obj){
+    var i,ret,inObjType,objType;
+    //if(!obj) return obj;
+    objType = SC.typeOf(obj);
+    if(objType === 'hash') ret = {}; //passed by reference
+    if(objType === 'array') ret = []; //passed by reference
+    if(objType === 'number') ret = obj; // passed by value
+    if(objType === 'string') ret = obj; // passed by value
+    if(objType === 'boolean') ret = obj; // passed by value
+
+    //if(debug) sys.log("copying: objType: " + objType);
+    if((objType === 'hash') || (objType === 'array')){
+      for(i in obj){
+        if(obj.hasOwnProperty(i)){
+          inObjType = SC.typeOf(obj[i]);
+          //if(debug) sys.log("copying: inObjType: " + inObjType);
+          if((inObjType === 'hash') || (inObjType === 'array')){
+            ret[i] = this.copy(obj[i]); //recursive copy of nested objects or arrays
+          } 
+          else ret[i] = obj[i];        
+        }
+      }    
+    }
+    return ret;
   }
   
 
