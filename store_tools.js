@@ -98,15 +98,41 @@ SC.mixin(ThothSC,{
     return record;
   },
   
-  updateOppositeRelations: function(store,storeKey,recordData,isRemove){
+/*
+  What should updateOppositeRelations do:
+  it should update the opposite side of a known relationship
+  so if an update of the relationship has been detected 
+  (createRecord, updateRecord, deleteRecord, pushRetrieve, pushDestroy)
+  it should update opposite relations with the new data
+  this means adding the current record to the opposite side of the known relations
+  and destroying it when the record is being destroyed
+
+  relations are expressed on both sides always, if not, they won't be updated anyway
+
+  one_m-to-one_m => update only if isUpdatable is true
+  one_m-to-one => update unless isUpdatable is false
+  one_m-to-many => update unless isUpdatable is false
+
+  the old stuff works great whenever the relation is actually there on the returndata
+  Problem is that the one-to-one are never on the returndata (normally)
+
+  so:
+  - run through all relations in the system
+  - if the data of the relations is available, use it
+  - if not, check whether it is a one-to-one relation, if yes, set the relKeys
+*/  
+  
+  updateOppositeRelations: function(store,storeKey,opts){
+    //recordData,isRemove){
+      
     var recordType = store.recordTypeFor(storeKey),
         modelGraph = ThothSC.modelCache.modelGraphFor(recordType),
         relations = modelGraph.get('relations'),
         recType = recordType.prototype,
-        recId = recordData[recType.primaryKey];
+        recId = opts.recordData? opts.recordData[recType.primaryKey]: opts.recordId; 
     
     var relParser = function(rel){
-      var oppSide, oppRecType, oppProperty,relKeys;
+      var oppSide, oppRecType, oppProperty,relKeys, relData;
 
       var updater = function(relKey){
         var hash,prop;
@@ -134,10 +160,15 @@ SC.mixin(ThothSC,{
       oppProperty = oppSide.oppositeProperty;          
 
       if(!oppProperty) return; // nothing to do when no opposite property has been defined...
-      if(!rel.keys) return; // don't try to add anything if the keys don't exist
-      else relKeys = (!(rel.keys instanceof Array))? [rel.keys]: rel.keys;
+      relData = opts.relationData? opts.relationData.findProperty('bucket',rel.bucket): null;
+      if(!relData){ // take the property value off the record...
+        relKeys = recordData[rel.propertyName];
+      }
+      else {
+        relKeys = (!(relData.keys instanceof Array))? [relData.keys]: relData.keys;
+      }
+      if(relKeys && (relKeys instanceof Array)) relKeys.forEach(updater);  
       
-      relKeys.forEach(updater);
     };
         
     relations.forEach(relParser);      
