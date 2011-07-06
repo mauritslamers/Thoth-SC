@@ -98,29 +98,31 @@ SC.mixin(ThothSC,{
     return record;
   },
   
-/*
-  What should updateOppositeRelations do:
-  it should update the opposite side of a known relationship
-  so if an update of the relationship has been detected 
-  (createRecord, updateRecord, deleteRecord, pushRetrieve, pushDestroy)
-  it should update opposite relations with the new data
-  this means adding the current record to the opposite side of the known relations
-  and destroying it when the record is being destroyed
+  /*
+    What should updateOppositeRelations do:
+    it should update the opposite side of a known relationship
+    so if an update of the relationship has been detected 
+    (createRecord, updateRecord, deleteRecord, pushRetrieve, pushDestroy)
+    it should update opposite relations with the new data
+    this means adding the current record to the opposite side of the known relations
+    and destroying it when the record is being destroyed
 
-  relations are expressed on both sides always, if not, they won't be updated anyway
+    relations are expressed on both sides always, if not, they won't be updated anyway
 
-  one_m-to-one_m => update only if isUpdatable is true
-  one_m-to-one => update unless isUpdatable is false
-  one_m-to-many => update unless isUpdatable is false
+    one_m-to-one_m => update only if isUpdatable is true
+    one_m-to-one => update unless isUpdatable is false
+    one_m-to-many => update unless isUpdatable is false
 
-  the old stuff works great whenever the relation is actually there on the returndata
-  Problem is that the one-to-one are never on the returndata (normally)
+    the old stuff works great whenever the relation is actually there on the returndata
+    Problem is that the one-to-one are never on the returndata (normally)
 
-  so:
-  - run through all relations in the system
-  - if the data of the relations is available, use it
-  - if not, check whether it is a one-to-one relation, if yes, set the relKeys
-*/  
+    myRel: SC.Record.toOne('someModel',{ isUpdatable })... this is actually the opposite...
+
+    so:
+    - run through all relations in the system
+    - if the data of the relations is available, use it
+    - if not, check whether it is a one-to-one relation, if yes, set the relKeys
+  */
   
   updateOppositeRelations: function(store,storeKey,opts){
     //recordData,isRemove){
@@ -152,12 +154,13 @@ SC.mixin(ThothSC,{
           store.pushRetrieve(oppRecType,relKey,hash);
         }      
       };
-      
-      if(!rel.isUpdatable) return; // if we shouldn't update this one, we shouldn't update this one
 
+      SC.Logger.log("updating relation: " + SC.inspect(rel));
       oppSide = recType[rel.propertyName];
+      SC.Logger.log("opposite side is: " + SC.inspect(oppSide));
+      if(!oppSide.isUpdatable) return; // if the opposite side doesn't want to be updated, don't do it
       oppRecType = oppSide.typeClass();
-      oppProperty = oppSide.oppositeProperty;          
+      oppProperty = oppSide.oppositeProperty;
 
       if(!oppProperty) return; // nothing to do when no opposite property has been defined...
       relData = opts.relationData? opts.relationData.findProperty('bucket',rel.bucket): null;
