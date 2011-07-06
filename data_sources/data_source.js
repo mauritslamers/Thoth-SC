@@ -379,9 +379,10 @@ ThothSC.DataSource = SC.DataSource.extend({
 		pushResult = store.pushRetrieve(recType,primKeyVal,recordData,storeKey);
 		if(pushResult){
 		  if(store.idFor(storeKey) !== primKeyVal) SC.Store.replaceIdFor(storeKey,primKeyVal); // workaround for a (possible) bug in the store
-		  if(relations && (relations.length > 0)){ // update opposite relations
-		    relations.forEach(function(rel){ ThothSC.updateOppositeRelation(store,storeKey,rel,recordData);});
-		  }
+		  ThothSC.updateOppositeRelations(store,storeKey,recordData);
+		  //if(relations && (relations.length > 0)){ // update opposite relations
+		  //  relations.forEach(function(rel){ ThothSC.updateOppositeRelation(store,storeKey,rel,recordData);});
+		  //}
 		} 
 		else ThothSC.client.appCallback(ThothSC.DS_ERROR_CREATE,"problem with updating the newly created record");
 		ThothSC.requestCache.destroyObject(requestCache);
@@ -453,9 +454,12 @@ ThothSC.DataSource = SC.DataSource.extend({
   
   onDeleteRecordResult: function(data){
     var result = data.deleteRecordResult,
-        requestCache = ThothSC.requestCache.retrieve(result.returnData.requestCacheKey);
-        
+        requestCache = ThothSC.requestCache.retrieve(result.returnData.requestCacheKey),
+        recId;
+    
+    recId = requestCache.store.idFor(requestCache.storeKey);
     requestCache.store.dataSourceDidDestroy(requestCache.storeKey);
+    ThothSC.updateOppositeRelations(requestCache.store, requestCache.storeKey,recId,true); // isRemove
     ThothSC.requestCache.destroyObject(requestCache);
   },
   
@@ -477,11 +481,12 @@ ThothSC.DataSource = SC.DataSource.extend({
     storeKey = this._store.pushRetrieve(recType,key,req.record); // save
     // pushing will only happen when we registered for record(types) with a fetch, which sets this._store
     if(storeKey){
-      if(req.relations){
-        req.relations.forEach(function(rel){
-          ThothSC.updateOppositeRelation(me._store,storeKey,rel,req.record);
-        });
-      }
+      Thoth.updateOppositeRelations(me._store,storeKey,req.record);
+      // if(req.relations){
+      //   req.relations.forEach(function(rel){
+      //     ThothSC.updateOppositeRelation(me._store,storeKey,rel,req.record);
+      //   });
+      // }
     } else {
       ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHCREATE,message);
     }
@@ -516,14 +521,17 @@ ThothSC.DataSource = SC.DataSource.extend({
     var req = data.deleteRecord,
         resource = req.bucket, key = req.key,
         recType = ThothSC.modelCache.modelFor(resource),
-        ret, msg;
+        sK, msg;
     
     if(!resource || !recType || !key){
       ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHUPDATE,"invalid push delete request");
       return;      
     }
-    ret = this._store.pushDestroy(recType,key);
-    if(!ret){
+    sK = this._store.pushDestroy(recType,key);
+    if(sK){
+      ThothSC.updateOppositeRelations(me._store,sK,key,true); // isRemove
+    } 
+    else {
       msg = "The server has tried to delete a record from your application, but wasn't allowed to do so!";
       ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHDELETE, msg);
     }
