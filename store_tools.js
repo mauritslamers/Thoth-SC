@@ -125,7 +125,6 @@ SC.mixin(ThothSC,{
   */
   
   updateOppositeRelations: function(store,storeKey,opts){
-    //recordData,isRemove){
       
     var recordType = store.recordTypeFor(storeKey),
         modelGraph = ThothSC.modelCache.modelGraphFor(recordType),
@@ -139,7 +138,6 @@ SC.mixin(ThothSC,{
       var updater = function(relKey){
         var hash,prop;
         var sK = oppRecType.storeKeyFor(relKey);
-        //console.log('storeKey of oppositeRec = ' + sK);
         if(sK){ 
           hash = store.readDataHash(sK);
           prop = hash[oppProperty];
@@ -175,19 +173,20 @@ SC.mixin(ThothSC,{
       if(!isUpdatable(oppRelation)) return; // don't update when the opposite side doesn't want updates
       
       relData = opts.relationData? opts.relationData.findProperty('bucket',rel.bucket): null;
-      if(!relData){ // take the property value off the record...
+      if(!relData){ // take the property value off the record when no relation data available
         relKeys = opts.recordData[rel.propertyName];
       }
       else {
         relKeys = (!(relData.keys instanceof Array))? [relData.keys]: relData.keys;
       }
-      if(relKeys && (relKeys instanceof Array)) relKeys.forEach(updater);  
-      
+      if(relKeys && (relKeys instanceof Array)) relKeys.forEach(updater); // run actual updater
     };
         
     relations.forEach(relParser);      
   },
   
+  
+  // DEPRECATED!!
   // while Thoth returns the id(s) of this side of the relation, we also need to update the hash on the other 
   // side of the relation. So, what we need to do here is to find the record(s) to which are pointed and update 
   // them accordingly.
