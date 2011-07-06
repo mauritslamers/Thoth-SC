@@ -134,7 +134,7 @@ SC.mixin(ThothSC,{
         recId = opts.recordData? opts.recordData[recType.primaryKey]: opts.recordId; 
     
     var relParser = function(rel){
-      var oppSide, oppRecType, oppProperty,relKeys, relData;
+      var oppSide, oppRecType, oppProperty, oppRelation, relKeys, relData;
 
       var updater = function(relKey){
         var hash,prop;
@@ -143,7 +143,7 @@ SC.mixin(ThothSC,{
         if(sK){ 
           hash = store.readDataHash(sK);
           prop = hash[oppProperty];
-          if(!isRemove){
+          if(!opts.isRemove){
             if(prop instanceof Array) prop.push(recId);
             else hash[oppProperty] = recId;                
           }
@@ -155,17 +155,28 @@ SC.mixin(ThothSC,{
         }      
       };
 
-      SC.Logger.log("updating relation: " + SC.inspect(rel));
+      var isUpdatable = function(rel){
+        if(rel.isMaster){
+          if(rel.isUpdatable === true) return true;
+          else return false;
+        }
+        else {
+          if(rel.isUpdatable === false) return false;
+          return true;
+        }
+      };
+
       oppSide = recType[rel.propertyName];
-      SC.Logger.log("opposite side is: " + SC.inspect(oppSide));
-      if(!oppSide.isUpdatable) return; // if the opposite side doesn't want to be updated, don't do it
       oppRecType = oppSide.typeClass();
       oppProperty = oppSide.oppositeProperty;
 
       if(!oppProperty) return; // nothing to do when no opposite property has been defined...
+      oppRelation = oppRecType.prototype[oppProperty];
+      if(!isUpdatable(oppRelation)) return; // don't update when the opposite side doesn't want updates
+      
       relData = opts.relationData? opts.relationData.findProperty('bucket',rel.bucket): null;
       if(!relData){ // take the property value off the record...
-        relKeys = recordData[rel.propertyName];
+        relKeys = opts.recordData[rel.propertyName];
       }
       else {
         relKeys = (!(relData.keys instanceof Array))? [relData.keys]: relData.keys;
