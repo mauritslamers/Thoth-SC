@@ -140,6 +140,7 @@ SC.mixin(ThothSC,{
         var sK = oppRecType.storeKeyFor(relKey);
         if(sK){ 
           hash = store.readDataHash(sK);
+          if(!hash) return; // we cannot update a non-existing hash
           prop = hash[oppProperty];
           if(!opts.isRemove){
             if(prop instanceof Array) prop.push(recId);
