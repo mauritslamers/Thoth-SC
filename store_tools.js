@@ -175,6 +175,7 @@ SC.mixin(ThothSC,{
       relData = opts.relationData? opts.relationData.findProperty('bucket',rel.bucket): null;
       if(!relData){ // take the property value off the record when no relation data available
         relKeys = opts.recordData[rel.propertyName];
+        relKeys = (relKeys instanceof Array)? relKeys: [relKeys];
       }
       else {
         relKeys = (!(relData.keys instanceof Array))? [relData.keys]: relData.keys;
