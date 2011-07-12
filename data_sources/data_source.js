@@ -432,7 +432,7 @@ ThothSC.DataSource = SC.DataSource.extend({
         baseReq = this.createBaseRequest(recType,record),
         requestKey;
         
-    requestKey = ThothSC.requestCache.store({ store: store, storeKey: storeKey, params: params });
+    requestKey = ThothSC.requestCache.store({ store: store, storeKey: storeKey, params: params, recordData: record });
     baseReq.returnData = { requestCacheKey: requestKey };
     ThothSC.client.send({deleteRecord: baseReq});
     return true;
@@ -459,7 +459,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     
     recId = requestCache.store.idFor(requestCache.storeKey);
     requestCache.store.dataSourceDidDestroy(requestCache.storeKey);
-    ThothSC.updateOppositeRelations(requestCache.store, requestCache.storeKey,{recordId: recId, isRemove: true}); // isRemove
+    ThothSC.updateOppositeRelations(requestCache.store, requestCache.storeKey,{recordId: recId, recordData: requestCache.recordData, isRemove: true}); // isRemove
     ThothSC.requestCache.destroyObject(requestCache);
   },
   
@@ -481,7 +481,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     storeKey = this._store.pushRetrieve(recType,key,req.record); // save
     // pushing will only happen when we registered for record(types) with a fetch, which sets this._store
     if(storeKey){
-      Thoth.updateOppositeRelations(me._store,storeKey,{recordData: req.record, relationData: req.relations});
+      ThothSC.updateOppositeRelations(me._store,storeKey,{recordData: req.record, relationData: req.relations});
       // if(req.relations){
       //   req.relations.forEach(function(rel){
       //     ThothSC.updateOppositeRelation(me._store,storeKey,rel,req.record);
@@ -521,7 +521,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     var req = data.deleteRecord,
         resource = req.bucket, key = req.key,
         recType = ThothSC.modelCache.modelFor(resource),
-        sK, msg;
+        recData,sK, msg;
     
     if(!resource || !recType || !key){
       ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHUPDATE,"invalid push delete request");
@@ -529,7 +529,8 @@ ThothSC.DataSource = SC.DataSource.extend({
     }
     sK = this._store.pushDestroy(recType,key);
     if(sK){
-      ThothSC.updateOppositeRelations(me._store,sK,{recordId: key, isRemove: true}); // isRemove
+      recData = this._store.readDataHash(sK);
+      ThothSC.updateOppositeRelations(this._store,sK,{recordId: key, isRemove: true, recordData: recData}); // isRemove
     } 
     else {
       msg = "The server has tried to delete a record from your application, but wasn't allowed to do so!";
