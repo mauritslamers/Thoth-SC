@@ -77,8 +77,6 @@ SC.mixin(ThothSC,{
   stripRelations: function(baseRequest){
     var stripper = function(rel){
       if(baseRequest.record[rel.propertyName]){
-        // only add keys when relation isMaster
-        if(rel.isMaster) rel.keys = baseRequest.record[rel.propertyName];
         delete baseRequest.record[rel.propertyName];
       }
     };
