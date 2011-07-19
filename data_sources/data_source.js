@@ -97,10 +97,10 @@ ThothSC.DataSource = SC.DataSource.extend({
       properties: this.sendProperties? modelGraph.get('properties'): undefined,
       computedProperties: (this.sendComputedProperties && (cps.length > 0))? cps: undefined,
       relations: (this.sendRelations && (rels.length>0))? rels: undefined,
-      combineReturnCalls: this.combineReturnCalls || undefined
-    };    
-    if(record) ret.record = ThothSC.stripRelations(ret,rec);
-    return ret;
+      combineReturnCalls: this.combineReturnCalls || undefined,
+      record: rec
+    };
+    return ThothSC.stripRelations(ret);
   },
   
   createFetchRequest: function(recType,query){

@@ -74,16 +74,18 @@ SC.mixin(ThothSC,{
      return ret;
   },
   
-  stripRelations: function(baseRequest,record){
-    if(baseRequest.relations){
-      baseRequest.relations.forEach(function(rel){
-        if(record[rel.propertyName]){
-          rel.keys = record[rel.propertyName];
-          delete record[rel.propertyName];
-        } 
-      }); 
+  stripRelations: function(baseRequest){
+    var stripper = function(rel){
+      if(record[rel.propertyName]){
+        rel.keys = baseRequest.record[rel.propertyName];
+        delete baseRequest.record[rel.propertyName];
+      }
+    };
+    
+    if(baseRequest.relations && baseRequest.record){
+      baseRequest.relations.forEach(stripper); 
     }
-    return record;
+    return baseRequest;
   },
   
   mergeRelation: function(relation,record){
