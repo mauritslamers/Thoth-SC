@@ -44,11 +44,11 @@ SC.mixin(ThothSC,{
     },this);
     
     this.client.on('authError', function(data){
-      callback(data);
+      callback({ authError: data});
     },this);
     
     this.client.on('authFailure', function(data){
-      callback(data);
+      callback({authFailure: data});
     },this);
     
     this.client.send({ auth: loginInfo });
