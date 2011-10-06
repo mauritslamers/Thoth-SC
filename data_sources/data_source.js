@@ -94,7 +94,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       computedProperties: (this.sendComputedProperties && (cps.length > 0))? cps: undefined,
       relations: (this.sendRelations && (rels.length>0))? rels: undefined,
       combineReturnCalls: this.combineReturnCalls || undefined,
-      record: rec
+      recordData: rec
     };
     return ThothSC.stripRelations(ret);
   },
