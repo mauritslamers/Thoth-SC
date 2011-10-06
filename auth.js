@@ -41,15 +41,15 @@ SC.mixin(ThothSC,{
       me.client.isAuthenticated = true;
       var ret = { authSuccess: {} };
       callback(ret);
-    });
+    },this);
     
     this.client.on('authError', function(data){
       callback(data);
-    });
+    },this);
     
     this.client.on('authFailure', function(data){
       callback(data);
-    });
+    },this);
     
     this.client.send({ auth: loginInfo });
   },

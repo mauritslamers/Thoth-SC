@@ -66,7 +66,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     };
     
     for(i=0;i<len;i+=1){
-      client.on(msgs[i][0],cbCreator(msgs[i][1]));
+      client.on(msgs[i][0],cbCreator(msgs[i][1]),me);
     }
   },
   
