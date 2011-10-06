@@ -20,6 +20,8 @@ ThothSC.DataSource = SC.DataSource.extend({
   
   sendComputedProperties: null,
   
+  connectUsing: ThothSC.SOCKETIO,
+  
   // INTERNAL
   
   _store: null,
@@ -27,8 +29,6 @@ ThothSC.DataSource = SC.DataSource.extend({
   init: function(){
     arguments.callee.base.apply(this, arguments);
     switch(this.connectUsing){
-      case ThothSC.WEBSOCKET: ThothSC.client = ThothSC.WebSocketClient.create(); break;
-      case ThothSC.XHRPOLLING: ThothSC.client = ThothSC.XHRPollingClient.create(); break;
       case ThothSC.SOCKETIO: ThothSC.client = ThothSC.SocketIOClient.create(); break; 
       case ThothSC.FAKE: ThothSC.client = ThothSC.FakeClient.create(); break;
       default: throw new Error("ThothSC init without a traffic specification!");

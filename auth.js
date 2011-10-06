@@ -36,7 +36,7 @@ SC.mixin(ThothSC,{
     this.client.on('authSuccess', function(data){
       var sK = data.sessionKey,
           role = data.role;
-      console.log(arguments);
+          
       me.client.userData = ThothSC.userDataCreator({ user: user, sessionKey: sK, role: role });
       me.client.isAuthenticated = true;
       var ret = { authSuccess: {} };

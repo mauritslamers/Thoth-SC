@@ -15,10 +15,8 @@ ThothSC = SC.Object.create(
 
   NAMESPACE: 'ThothSC',
   VERSION: '0.1.0',
-  
-  WEBSOCKET: 'ws', // traffic specifications
-  XHRPOLLING: 'xhrpol',
-  SOCKETIO: 'socket.io',
+
+  SOCKETIO: 'socket.io', // traffic specifications
   FAKE: 'fake', // fake client, for testing purposes and other offline tricks
   
   //events
