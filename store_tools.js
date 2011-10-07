@@ -143,13 +143,16 @@ SC.mixin(ThothSC,{
           hash = store.readDataHash(sK);
           if(!hash) return; // we cannot update a non-existing hash
           prop = hash[oppProperty];
-          if(!opts.isRemove){
-            if(prop instanceof Array) prop.push(recId);
-            else hash[oppProperty] = recId;                
+          // what are we updating here...
+          if(oppRelation.type === 'toMany'){
+            if(prop){
+              if(opts.isRemove) prop = prop.without(recId);
+              else prop.push(recId);
+            }
+            else hash[oppProperty] = opts.isRemove? []: [recId];
           }
-          else {
-            if(prop instanceof Array) prop = prop.without(recId);
-            else hash[oppProperty] = null;
+          if(oppRelation.type === 'toOne'){
+            hash[oppProperty] = opts.isRemove? null: recId;
           }
           store.pushRetrieve(oppRecType,relKey,hash);
         }      
