@@ -33,28 +33,24 @@ SC.mixin(ThothSC,{
     }
     
     // register authentication special message functions
-    var cb = function(m){
-      var sessionKey, role, ret;
-      if(m.authSuccess){
-        sessionKey = m.authSuccess.sessionKey;
-        role = m.authSuccess.role;
-        me.client.userData = ThothSC.userDataCreator({ user: user, sessionKey: sessionKey, role: role });
-        me.client.isAuthenticated = true;
-        ret = { authSuccess: {} };
-        callback(ret);
-        return true;
-      }
-      if(m.authError){
-        callback(m);
-        return true;
-      }
-      if(m.authFailure){
-        callback(m);
-        return true;
-      }
-    };
+    this.client.on('authSuccess', function(data){
+      var sK = data.sessionKey,
+          role = data.role;
+          
+      me.client.userData = ThothSC.userDataCreator({ user: user, sessionKey: sK, role: role });
+      me.client.isAuthenticated = true;
+      var ret = { authSuccess: {} };
+      callback(ret);
+    },this);
     
-    this.client.registerSpecialMessageHandler(cb);
+    this.client.on('authError', function(data){
+      callback({ authError: data});
+    },this);
+    
+    this.client.on('authFailure', function(data){
+      callback({authFailure: data});
+    },this);
+    
     this.client.send({ auth: loginInfo });
   },
   
@@ -63,19 +59,6 @@ SC.mixin(ThothSC,{
     if(userData){
       this.client.send({ logOut: { user: userData.user(userData.key()), sessionKey: userData.sessionKey(userData.key())}});      
     }
-
-
-    /*
-    if(this.userData && this.userData.isAuthenticated()){
-			this.send({ logOut: { user: this.userData.user(this.userData.key()), sessionKey: this.userData.sessionKey(this.userData.key()) }});       
-		}
-		else console.log('Trying to logout, but not logged in');
-		if(m.logoutSuccess){
-			me.onLogoutSuccess.call(me,m.logoutSuccess);
-			return true; 
-		}	*/
-
-    
   },
   
   onLogoutSuccess: function(){

@@ -20,6 +20,8 @@ ThothSC.DataSource = SC.DataSource.extend({
   
   sendComputedProperties: null,
   
+  connectUsing: ThothSC.SOCKETIO,
+  
   // INTERNAL
   
   _store: null,
@@ -27,8 +29,7 @@ ThothSC.DataSource = SC.DataSource.extend({
   init: function(){
     arguments.callee.base.apply(this, arguments);
     switch(this.connectUsing){
-      case ThothSC.WEBSOCKET: ThothSC.client = ThothSC.WebSocketClient.create(); break;
-      case ThothSC.XHRPOLLING: ThothSC.client = ThothSC.XHRPollingClient.create(); break;
+      case ThothSC.SOCKETIO: ThothSC.client = ThothSC.SocketIOClient.create(); break; 
       case ThothSC.FAKE: ThothSC.client = ThothSC.FakeClient.create(); break;
       default: throw new Error("ThothSC init without a traffic specification!");
     }
@@ -60,17 +61,12 @@ ThothSC.DataSource = SC.DataSource.extend({
     var client = ThothSC.client,
         msgs = this.messages,
         i,len = msgs.length, me = this;
-    var cbCreator = function(type,fn){
-      return function(msg){
-        if(msg[type]){ 
-          me[fn](msg);
-          return true;
-        }
-      };
+    var cbCreator = function(fn){
+      return function(msg){ me[fn](msg); }; 
     };
     
     for(i=0;i<len;i+=1){
-      client.registerDataMessageHandler(cbCreator(msgs[i][0],msgs[i][1]),msgs[i][0]);
+      client.on(msgs[i][0],cbCreator(msgs[i][1]),me);
     }
   },
   
@@ -98,7 +94,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       computedProperties: (this.sendComputedProperties && (cps.length > 0))? cps: undefined,
       relations: (this.sendRelations && (rels.length>0))? rels: undefined,
       combineReturnCalls: this.combineReturnCalls || undefined,
-      record: rec
+      recordData: rec
     };
     return ThothSC.stripRelations(ret);
   },
@@ -175,10 +171,11 @@ ThothSC.DataSource = SC.DataSource.extend({
   //          else take the records from the fetch result, and update the store. 
   // step 3:  if there are storeKeys in the cache and we have a relationSet, merge.
   // step 4:  if this request was the last one, finish off
-  onFetchResult: function(data){
-    var fetchResult = data.fetchResult;
+  onFetchResult: function(fetchResult){
     var requestCache, records;
     var requestKey = fetchResult.returnData.requestKey;
+    
+    SC.Logger.log("fetchResult received for: " + requestKey);
     
     if(fetchResult){
       requestCache = ThothSC.requestCache.retrieve(requestKey);
@@ -211,10 +208,9 @@ ThothSC.DataSource = SC.DataSource.extend({
     }
   },
   
-  onFetchError: function(data){
+  onFetchError: function(fetchError){
     //function to handle Thoth error messages for fetch
-    var fetchError = data.fetchError,
-        errorCode, requestCacheKey, requestCache, message,
+    var errorCode, requestCacheKey, requestCache, message,
         query, store;
 
     if(fetchError){
@@ -273,8 +269,7 @@ ThothSC.DataSource = SC.DataSource.extend({
   
   // this is mainly the same setup as with onFetchResult, only with a single record and no dataSourceDidComplete
   // as ThothSC.loadRecord will take care of the needed actions.
-  onRefreshRecordResult: function(data){
-    var refreshResult = data.refreshRecordResult;
+  onRefreshRecordResult: function(refreshResult){
     var requestKey = refreshResult.returnData.requestCacheKey;
     var reqC = ThothSC.requestCache.retrieve(requestKey);
     var mergedData;
@@ -303,10 +298,9 @@ ThothSC.DataSource = SC.DataSource.extend({
     }  
   },
 
-  onRefreshRecordError: function(data){
+  onRefreshRecordError: function(refreshRecordError){
     //function to handle Thoth error messages for fetch
-    var refreshRecordError = data.refreshRecordError,
-        errorCode, requestCacheKey, curRequestData, message,
+    var errorCode, requestCacheKey, curRequestData, message,
         storeKey, store;
 
     if(refreshRecordError){
@@ -345,13 +339,12 @@ ThothSC.DataSource = SC.DataSource.extend({
     return YES;
   },
   
-  onCreateRecordError: function(data){
-    var error = data.createRecordError,
-        errorCode, requestCache, message, recType;
+  onCreateRecordError: function(createRecordError){
+    var errorCode, requestCache, message, recType;
     
-    if(error){
-      errorCode = error.errorCode;
-      requestCache = ThothSC.requestCache.retrieve(error.returnData.requestCacheKey);
+    if(createRecordError){
+      errorCode = createRecordError.errorCode;
+      requestCache = ThothSC.requestCache.retrieve(createRecordError.returnData.requestCacheKey);
       switch(errorCode){
          case 0: 
           message = "The policy settings on the server don't allow you to create this record"; 
@@ -364,9 +357,8 @@ ThothSC.DataSource = SC.DataSource.extend({
     }
   },
   
-  onCreateRecordResult: function(data){  
-    var result = data.createRecordResult,
-        requestCache = ThothSC.requestCache.retrieve(result.returnData.requestCacheKey),
+  onCreateRecordResult: function(result){  
+    var requestCache = ThothSC.requestCache.retrieve(result.returnData.requestCacheKey),
         storeKey = requestCache.storeKey, store = requestCache.store,
         recType = requestCache.store.recordTypeFor(storeKey),
         relations = requestCache.request.relations,
@@ -401,9 +393,8 @@ ThothSC.DataSource = SC.DataSource.extend({
     return YES;
   },
   
-  onUpdateRecordError: function(data){
-    var error = data.updateRecordError,
-        requestCache, errorCode, message;
+  onUpdateRecordError: function(error){
+    var requestCache, errorCode, message;
         
     if(error){
       errorCode = error.errorCode;
@@ -418,9 +409,8 @@ ThothSC.DataSource = SC.DataSource.extend({
     }
   },
   
-  onUpdateRecordResult: function(data){
-    var result = data.updateRecordResult,
-        requestCache = ThothSC.requestCache.retrieve(result.returnData.requestCacheKey);
+  onUpdateRecordResult: function(result){
+    var requestCache = ThothSC.requestCache.retrieve(result.returnData.requestCacheKey);
     
     requestCache.store.dataSourceDidComplete(requestCache.storeKey,result.record);
     ThothSC.requestCache.destroyObject(requestCache);
@@ -438,9 +428,8 @@ ThothSC.DataSource = SC.DataSource.extend({
     return true;
   },
   
-  onDeleteRecordError: function(data){
-    var error = data.deleteRecordError,
-        errorCode = error.errorCode, 
+  onDeleteRecordError: function(error){
+    var errorCode = error.errorCode, 
         requestCache = ThothSC.requestCache.retrieve(error.returnData.requestCacheKey), message;
         
     switch(errorCode){
@@ -452,9 +441,8 @@ ThothSC.DataSource = SC.DataSource.extend({
     ThothSC.requestCache.destroyObject(requestCache);
   },
   
-  onDeleteRecordResult: function(data){
-    var result = data.deleteRecordResult,
-        requestCache = ThothSC.requestCache.retrieve(result.returnData.requestCacheKey),
+  onDeleteRecordResult: function(result){
+    var requestCache = ThothSC.requestCache.retrieve(result.returnData.requestCacheKey),
         recId;
     
     recId = requestCache.store.idFor(requestCache.storeKey);
@@ -463,9 +451,8 @@ ThothSC.DataSource = SC.DataSource.extend({
     ThothSC.requestCache.destroyObject(requestCache);
   },
   
-  onPushedCreateRecord: function(data){
-    var req = data.createRecord,
-        resource = req.bucket, key = req.key,
+  onPushedCreateRecord: function(req){
+    var resource = req.bucket, key = req.key,
         relations = req.relations, 
         record = req.record,
         message = "The server has tried to push a createRecord request to your application, but isn't allowed to store it",
@@ -492,9 +479,8 @@ ThothSC.DataSource = SC.DataSource.extend({
     }
   },
 
-  onPushedUpdateRecord: function(data){
-    var req = data.updateRecord,
-        rec = req.record,
+  onPushedUpdateRecord: function(req){
+    var rec = req.record,
         ret,msg,
         resource = req.bucket, key = req.key,
         recType = ThothSC.modelCache.modelFor(resource);
@@ -517,9 +503,8 @@ ThothSC.DataSource = SC.DataSource.extend({
     }
   },
   
-  onPushedDeleteRecord: function(data){
-    var req = data.deleteRecord,
-        resource = req.bucket, key = req.key,
+  onPushedDeleteRecord: function(req){
+    var resource = req.bucket, key = req.key,
         recType = ThothSC.modelCache.modelFor(resource),
         recData,sK, msg;
     
@@ -537,9 +522,5 @@ ThothSC.DataSource = SC.DataSource.extend({
       ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHDELETE, msg);
     }
   }
-  
-
-  
-  
   
 });
