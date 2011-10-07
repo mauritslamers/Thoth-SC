@@ -5,7 +5,7 @@ a Sproutcore framework for connecting the Thoth server to a SproutCore applicati
 October 7th 2011:
 
 As of traffic issues others and I encountered lately between Thoth and ThothSC, I decided to no longer
-use my custom traffic specifications, but to replace them with socket.io.
+use my custom traffic specifications, but to replace them with socket.io (socket.io client included).
 This means the master branch no longer contains the custom specifications, but only a fake client
 (for testing purposes) and the socket.io client.
 I created a separate branch to keep the old version around (last-non-socket.io).
