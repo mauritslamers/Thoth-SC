@@ -367,10 +367,12 @@ ThothSC.DataSource = SC.DataSource.extend({
         primKeyVal = result.key || recordData[primKey],
         pushResult;
     
-    if(this.debug) SC.Logger.log('ThothSC onCreateRecordResult: ' + JSON.stringify(data));
+    if(this.debug) SC.Logger.log('ThothSC onCreateRecordResult: ' + JSON.stringify(result));
 		pushResult = store.pushRetrieve(recType,primKeyVal,recordData,storeKey);
 		if(pushResult){
 		  if(store.idFor(storeKey) !== primKeyVal) SC.Store.replaceIdFor(storeKey,primKeyVal); // workaround for a (possible) bug in the store
+      SC.Logger.log('storeKey ' + storeKey);
+      SC.Logger.log('primKeyVal ' + primKeyVal);
 		  ThothSC.updateOppositeRelations(store,storeKey,{recordData:recordData, relationData: relations });
 		  //if(relations && (relations.length > 0)){ // update opposite relations
 		  //  relations.forEach(function(rel){ ThothSC.updateOppositeRelation(store,storeKey,rel,recordData);});
