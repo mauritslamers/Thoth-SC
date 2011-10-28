@@ -218,7 +218,14 @@ ThothSC.DataSource = SC.DataSource.extend({
       requestCacheKey = fetchError.returnData.requestCacheKey;
       requestCache = ThothSC.requestCache.retrieve(requestCacheKey);
       switch(errorCode){
-        case 0: message = "The policy settings on the server don't allow you to fetch these records"; break;
+        case ThothSC.THOTH_ERROR_DENIEDONPOLICY: 
+          message = "The policy settings on the server don't allow you to fetch these records"; 
+          break;
+        case ThothSC.THOTH_ERROR_DBERROR:
+          message = "The database reported an error";
+          break;
+        default: 
+          message = "Unknown server error";
       }
       requestCache.store.dataSourceDidErrorQuery(requestCache.query);
       ThothSC.requestCache.destroy(requestCacheKey);
@@ -308,7 +315,14 @@ ThothSC.DataSource = SC.DataSource.extend({
       requestCacheKey = refreshRecordError.returnData.requestCacheKey;
       curRequestData = ThothSC.requestCache.retrieve(requestCacheKey);
       switch(errorCode){
-        case 0: message = "The policy settings on the server don't allow you to refresh this record"; break;
+        case ThothSC.THOTH_ERROR_DENIEDONPOLICY: 
+          message = "The policy settings on the server don't allow you to refresh this record"; 
+          break;
+        case ThothSC.THOTH_ERROR_DBERROR:
+          message = "The database reported an error";
+          break;
+        default: 
+          message = "Unknown server error";
       }
       storeKey = curRequestData.storeKey;
       store = curRequestData.store;
@@ -346,11 +360,16 @@ ThothSC.DataSource = SC.DataSource.extend({
       errorCode = createRecordError.errorCode;
       requestCache = ThothSC.requestCache.retrieve(createRecordError.returnData.requestCacheKey);
       switch(errorCode){
-         case 0: 
+        case ThothSC.THOTH_ERROR_DENIEDONPOLICY: 
           message = "The policy settings on the server don't allow you to create this record"; 
           requestCache.store.removeDataHash(requestCache.storeKey,SC.Record.DESTROYED_CLEAN);
           requestCache.store.dataHashDidChange(requestCache.storeKey);
           break;
+        case ThothSC.THOTH_ERROR_DBERROR:
+          message = "The database reported an error";
+          break;
+        default: 
+          message = "Unknown server error";
       }
       ThothSC.requestCache.destroyObject(requestCache);
       ThothSC.client.appCallback(ThothSC.DS_ERROR_CREATE, message);
@@ -402,8 +421,17 @@ ThothSC.DataSource = SC.DataSource.extend({
       errorCode = error.errorCode;
       requestCache = ThothSC.requestCache.retrieve(error.returnData.requestCacheKey);
       switch(errorCode){
-         case 0: message = "The policy settings on the server don't allow you to update this record"; break;
-         case 1: message = "There has been a data inconsistency between the server and your application."; break;
+        case ThothSC.THOTH_ERROR_DENIEDONPOLICY: 
+          message = "The policy settings on the server don't allow you to update this record"; 
+          break;
+        case ThothSC.THOTH_ERROR_DATAINCONSISTENCY: 
+          message = "There has been a data inconsistency between the server and your application."; 
+          break;
+        case ThothSC.THOTH_ERROR_DBERROR:
+          message = "The database reported an error";
+          break;
+        default: 
+          message = "Unknown server error";
       }
       requestCache.store.dataSourceDidError(requestCache.storeKey);
       ThothSC.requestCache.destroyObject(requestCache);
@@ -435,8 +463,17 @@ ThothSC.DataSource = SC.DataSource.extend({
         requestCache = ThothSC.requestCache.retrieve(error.returnData.requestCacheKey), message;
         
     switch(errorCode){
-       case 0: message = "The policy settings on the server don't allow you to delete this record"; break;
-       case 1: message = "There has been a data inconsistency between the server and your application."; break;            
+      case ThothSC.THOTH_ERROR_DENIEDONPOLICY: 
+        message = "The policy settings on the server don't allow you to delete this record"; 
+        break;
+      case ThothSC.THOTH_ERROR_DATAINCONSISTENCY: 
+        message = "There has been a data inconsistency between the server and your application."; 
+        break;
+      case ThothSC.THOTH_ERROR_DBERROR:
+        message = "The database reported an error";
+        break;
+      default: 
+        message = "Unknown server error";           
     }
     requestCache.store.dataSourceDidError(requestCache.storeKey);
     ThothSC.client.appCallback(ThothSC.DS_ERROR_DELETE, message);

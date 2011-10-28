@@ -32,6 +32,10 @@ ThothSC = SC.Object.create(
   DS_ERROR_PUSHUPDATE: 'ds_error_pushupdate',
   DS_ERROR_PUSHDELETE: 'ds_error_pushdelete',
   
+  THOTH_ERROR_DENIEDONPOLICY: 0,
+  THOTH_ERROR_DATAINCONSISTENCY: 1,
+  THOTH_ERROR_DBERROR: 3,
+  
   MD5: 'md5', // encryption schemes for passwords
   RIPEMD160: 'ripemd160',
   SHA1: 'sha1',
