@@ -22,6 +22,8 @@ ThothSC.DataSource = SC.DataSource.extend({
   
   connectUsing: ThothSC.SOCKETIO,
   
+  logTraffic: false, // send the messages sent to the server to the console too
+  
   // INTERNAL
   
   _store: null,
