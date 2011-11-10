@@ -54,6 +54,28 @@ SC.mixin(ThothSC,{
     this.client.send({ auth: loginInfo });
   },
   
+  // function to re-auth after a broken connection
+  sendReAuthRequest: function(callback){
+    var ud = this.client? this.client.userData: null;
+    if(ud){
+      this.client.on('authError', function(data){
+        this.client.appCallback({ reAuthError: data});
+        callback(false);
+      },this);
+
+      this.client.on('authFailure', function(data){
+         this.client.appCallback({ reAuthFailure: data});
+         callback(false);
+      },this);
+      
+      this.client.on('authSuccess',function(data){
+        callback(true);
+      });
+      
+      this.client.send({reauth: { user: ud.user(ud.key()), sessionKey: ud.sessionKey(ud.key())}});
+    }
+  },
+  
   sendLogoutRequest: function(){
     var userData = this.client.userData;
     if(userData){

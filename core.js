@@ -23,6 +23,7 @@ ThothSC = SC.Object.create(
   CONNECTION_CLOSED: 'closed ', 
   CONNECTION_OPENED: 'opened',
   CONNECTION_ERROR: 'error',
+  CONNECTION_REAUTHFAILED: 'reauth_failed',
   DS_ERROR_FETCH: 'ds_error_fetch',
   DS_ERROR_REFRESH: 'ds_error_refresh',
   DS_ERROR_CREATE: 'ds_error_create',
