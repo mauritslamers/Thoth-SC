@@ -24,6 +24,8 @@ ThothSC.DataSource = SC.DataSource.extend({
   
   logTraffic: false, // send the messages sent to the server to the console too
   
+  defaultResponder: null, // default responder for events, can be used for state charts
+  
   // INTERNAL
   
   _store: null,
@@ -41,6 +43,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     
     if(!ThothSC.requestCache) ThothSC.requestCache = ThothSC.RequestCacheManager.create(); // fallback
     if(!ThothSC.modelCache) ThothSC.modelCache = ThothSC.ModelCacheManager.create();
+    if(this.defaultResponder) ThothSC.defaultResponder = this.defaultResponder;
   },
   
   messages: [

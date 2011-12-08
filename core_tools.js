@@ -11,21 +11,55 @@ SC.mixin(ThothSC,{
 	},
   
   connect: function(callback){ // callback can/will be called with (event, data)
-    var func, toplevel;
-    if(SC.typeOf(callback) !== 'string') throw new Error("connect needs a callback path, please provide a string");
-     
-    func = SC.objectForPropertyPath(callback);
+    var func, toplevel, type, cb;
     
-    if(func){
-      if(!this.client){ 
-        toplevel = callback.substr(0,callback.indexOf("."));
-        if(toplevel !== "") window[toplevel].store._getDataSource(); //init DS
-      }
-      this.client.applicationCallback = func;
-      this.client.connect();
-      return true;
+    if(!callback && !this.defaultResponder){
+      throw new Error("ThothSC needs a callback or a responder. Define a defaultResponder on the data source or pass a callback to the connect function");
     }
-    else return false;
+    
+    if(callback){
+      // type can be string, or statechart
+      type = SC.typeOf(callback);
+      if(type === 'string'){
+        func = SC.objectForPropertyPath(callback);
+
+        if(func){
+          if(!this.client){ 
+            toplevel = callback.substr(0,callback.indexOf("."));
+            if(toplevel !== "") window[toplevel].store._getDataSource(); //init DS
+          }
+          if(typeof func === 'function') cb = func;
+          else {
+            cb = function(event,data){
+              callback.sendEvent(event,data);
+            };
+          }
+          this.client.applicationCallback = cb;
+          this.client.connect();
+          return true;
+        }
+        else return false; 
+      }
+      else if(type === 'hash'){ // assume a state chart
+        cb = function(event,data){
+          callback.sendEvent(event,data);
+        };
+        this.client.applicationCallback = cb;
+        this.client.connect();
+        return true;      
+      }
+      else return false;
+    }
+    else {
+      // assume default responder
+      cb = function(event,data){
+        ThothSC.get('defaultResponder').sendEvent(event,data); //will this work?
+      };
+      this.client.applicationCallback = cb;
+      this.client.connect();
+      return true;      
+    }
+
   },
 
 	isXDomain: function(host){
