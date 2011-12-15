@@ -114,8 +114,9 @@ ThothSC.DataSource = SC.DataSource.extend({
     return { fetch: baseReq };
   },
   
-  getNumberOfResponses: function(baseRequest){
+  getNumberOfResponses: function(request){
     var ret = 1;
+    var baseRequest = request.fetch || request; 
     if(!this.combineReturnCalls && baseRequest.relations){
       ret += baseRequest.relations.length;
     }
@@ -184,7 +185,10 @@ ThothSC.DataSource = SC.DataSource.extend({
     
     if(fetchResult){
       requestCache = ThothSC.requestCache.retrieve(requestKey);
-      if(!requestCache) return;
+      if(!requestCache){
+        SC.Logger.log("ThothSC Datasource... receiving a fetch request without a request cache?? This must be a bug!");
+        return;
+      } 
       if(fetchResult.relationSet && !requestCache.storeKeys){
         if(!requestCache.unsavedRelations) requestCache.unsavedRelations = fetchResult.relationSet;
         else requestCache.unsavedRelations.pushObjects(fetchResult.relationSet);
@@ -201,7 +205,8 @@ ThothSC.DataSource = SC.DataSource.extend({
         if(!this.combinedReturnCalls) requestCache.numResponses -= 1;
       }
       if(requestCache.storeKeys && fetchResult.relationSet){
-        records = ThothSC.mergeRelationSet(requestCache.recordType,requestCache.records,(requestCache.numResponses < 2));
+        records = ThothSC.mergeRelationSet(requestCache.recordType,requestCache.records,fetchResult.relationSet);
+        this.updateStoreOnFetch(requestKey,records,(requestCache.numResponses < 2));
         if(!this.combinedReturnCalls) requestCache.numResponses -= 1;
       }
       if((this.combinedReturnCalls && requestCache.numResponses === 1) ||
