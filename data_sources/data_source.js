@@ -134,7 +134,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     if(rectype && query.isRemote()){
       request = this.createFetchRequest(rectype,query);      
       numResponses = this.getNumberOfResponses(request);
-      requestKey = ThothSC.requestCache.store({ store: store, query: query, numResponses: numResponses });
+      requestKey = ThothSC.requestCache.store({ store: store, query: query, numResponses: numResponses, recordType: rectype });
       request.fetch.returnData = { requestKey: requestKey };
       if(this.debug) console.log('Sending fetchRequest: ' + JSON.stringify(request));
       ThothSC.client.send(request);      
