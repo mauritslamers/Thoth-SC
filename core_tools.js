@@ -9,12 +9,15 @@ SC.mixin(ThothSC,{
 		}
 		else return "";
 	},
-  
+	
+	// Using this to start the connection to Thoth
+	// parameter is either a string with a path to the callback, or state chart,
+	// or a responder object (a state chart)
+  // If you set the defaultResponder on the data source, callback can be empty
   connect: function(callback){ // callback can/will be called with (event, data)
     var func, toplevel, type, cb;
-    
     if(!callback && !this.defaultResponder){
-      throw new Error("ThothSC needs a callback or a responder. Define a defaultResponder on the data source or pass a callback to the connect function");
+      throw new Error("ThothSC needs a callback or a responder. Define a defaultResponder on the data source or pass a callback to the connect function. If this is defined, init your data source first...");
     }
     
     if(callback){
@@ -29,7 +32,7 @@ SC.mixin(ThothSC,{
             if(toplevel !== "") window[toplevel].store._getDataSource(); //init DS
           }
           if(typeof func === 'function') cb = func;
-          else {
+          else { // in case we have a string with a defaultResponder or state chart
             cb = function(event,data){
               callback.sendEvent(event,data);
             };
