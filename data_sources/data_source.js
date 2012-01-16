@@ -56,7 +56,9 @@ ThothSC.DataSource = SC.DataSource.extend({
     [ThothSC.ACTION_CREATE_REPLY, 'onCreateRecordResult'],
     [ThothSC.ACTION_UPDATE_REPLY, 'onUpdateRecordResult'],
     [ThothSC.ACTION_DELETE_REPLY, 'onDeleteRecordResult'],
-    [ThothSC.ACTION_REFRESH_REPLY, 'onRefreshRecordResult'],
+    //[ThothSC.ACTION_REFRESH_REPLY, 'onRefreshRecordResult'],
+    [ThothSC.ACTION_REFRESH_REPLY, 'onRefreshReply'],    
+    [ThothSC.ACTIOn_REFRESH_RELATION_REPLY, 'onRefreshRelationReply'],
     [ThothSC.ACTION_FETCH_ERROR, 'onFetchError'],
     [ThothSC.ACTION_REFRESH_ERROR, 'onRefreshRecordError'],
     [ThothSC.ACTION_CREATE_ERROR, 'onCreateRecordError'],
@@ -176,48 +178,48 @@ ThothSC.DataSource = SC.DataSource.extend({
   onFetchReply: function(fetchReply){
     var reqCache, records,
         reqKey = fetchReply.returnData.requestKey;
-        
-    if(fetchReply){
-      reqCache = ThothSC.requestCache.retrieve(reqKey);
-      if(!reqCache){
-        SC.Logger.log("ThothSC Datasource... receiving a fetch request without a request cache?? This must be a bug!");
-        return;
-      }
-      if(fetchReply.records){
-        if(reqCache.unsavedRelations){ // if unsaved relations, first merge
-          records = ThothSC.mergeRelationSet(reqCache.recordType,fetchReply.records,reqCache.unsavedRelations);
-          delete reqCache.unsavedRelations;
-        }
-        else records = fetchReply.records;
-        this.updateStoreOnFetch(reqKey,records,(reqCache.numResponses < 2));
-        if(!this.combinedReturnCalls) reqCache.numResponses -= 1;
-      }
-      this._finishFetch(reqKey,reqCache); 
+
+    if(!fetchReply) return;
+    reqCache = ThothSC.requestCache.retrieve(reqKey);
+    if(!reqCache){
+      if(this.debug) SC.Logger.log("ThothSC Datasource... receiving a fetch request without a request cache?? This must be a bug!");
+      return;
     }
+    if(fetchReply.records){
+      if(reqCache.unsavedRelations){ // if unsaved relations, first merge
+        records = ThothSC.mergeRelationSet(reqCache.recordType,fetchReply.records,reqCache.unsavedRelations);
+        delete reqCache.unsavedRelations;
+      }
+      else records = fetchReply.records;
+      this.updateStoreOnFetch(reqKey,records,(reqCache.numResponses < 2));
+      if(!this.combinedReturnCalls) reqCache.numResponses -= 1;
+    }
+    this._finishFetch(reqKey,reqCache);   
+
   },
   
   onFetchRelationReply: function(relReply){
     var reqKey = relReply.returnData.requestKey;
     var reqCache,records;
     
-    if(relReply && relReply.relationSet){
-      reqCache = ThothSC.requestCache.retrieve(reqKey);
-      if(!reqCache){
-        SC.Logger.log("ThothSC Datasource... receiving a fetch relation request without a request cache?? This must be a bug!");
-        return;
-      }
-      if(!reqCache.storeKeys){
-        if(!reqCache.unsavedRelations) reqCache.unsavedRelations = relReply.relationSet;
-        else reqCache.unsavedRelations.pushObjects(relReply.relationSet);
-        if(!this.combinedReturnCalls) reqCache.numResponses -= 1;
-      }
-      else {
-        records = ThothSC.mergeRelationSet(reqCache.recordType,reqCache.records,relReply.relationSet);
-        this.updateStoreOnFetch(reqKey,records,(reqCache.numResponses < 2));
-        if(!this.combinedReturnCalls) reqCache.numResponses -= 1;        
-      }
-      this._finishFetch(reqKey,reqCache); 
+    if(!(relReply && relReply.relationSet)) return;
+    
+    reqCache = ThothSC.requestCache.retrieve(reqKey);
+    if(!reqCache){
+      if(this.debug) SC.Logger.log("ThothSC Datasource... receiving a fetch relation request without a request cache?? This must be a bug!");
+      return;
     }
+    if(!reqCache.storeKeys){
+      if(!reqCache.unsavedRelations) reqCache.unsavedRelations = relReply.relationSet;
+      else reqCache.unsavedRelations.pushObjects(relReply.relationSet);
+      if(!this.combinedReturnCalls) reqCache.numResponses -= 1;
+    }
+    else {
+      records = ThothSC.mergeRelationSet(reqCache.recordType,reqCache.records,relReply.relationSet);
+      this.updateStoreOnFetch(reqKey,records,(reqCache.numResponses < 2));
+      if(!this.combinedReturnCalls) reqCache.numResponses -= 1;        
+    }
+    this._finishFetch(reqKey,reqCache); 
   },
   
   _finishFetch: function(requestKey,requestCache){
@@ -342,6 +344,52 @@ ThothSC.DataSource = SC.DataSource.extend({
     ThothSC.client.send({ refreshRecord: baseReq });
     return true;
   },
+
+  onRefreshReply: function(refreshResult){
+    var reqKey,reqCache,mergedData;
+
+    if(!refreshResult) return;
+    reqKey = refreshResult.returnData.requestCacheKey;
+    reqCache = ThothSC.requestCache.retrieve(reqKey);
+    if(!reqCache) return;
+
+    if(reqCache.unsavedRelations){
+      mergedData = ThothSC.mergeRelationSet(reqCache.recordType,[refreshResult.record],reqCache.unsavedRelations)[0];
+    } 
+    else mergedData = refreshResult.record;
+    reqCache.record = mergedData;
+    ThothSC.loadRecord(reqCache.store,reqCache.recordType,reqCache.storeKey,mergedData,(reqCache.numResponses < 2));
+    if(!this.combinedReturnCalls) reqCache.numResponses -=1;
+    this._finishRefresh(reqKey,reqCache); 
+  },
+  
+  onRefreshRelationReply: function(relResult){
+    var reqKey, reqCache, mergedData;
+    
+    if(!relResult) return;
+    reqKey = relResult.returnData.requestCacheKey;
+    reqCache = ThothSC.requestCache.retrieve(reqKey);
+    if(!reqCache) return;
+    
+    if(!reqCache.record){
+      if(!reqCache.unsavedRelations) reqCache.unsavedRelations = relResult.relationSet;
+      else reqCache.unsavedRelations.pushObjects(relResult.relationSet);
+      if(!this.combinedReturnCalls) reqCache.numResponses -= 1;      
+    } 
+    else {
+      mergedData = ThothSC.mergeRelationSet(reqCache.recordType,[reqCache.record],relResult.relationSet)[0];
+      ThothSC.loadRecord(reqCache.store,reqCache.recordType,reqCache.storeKey,mergedData,(reqCache.numResponses < 2));
+      if(!this.combinedReturnCalls) reqCache.numResponses -= 1;      
+    }                        
+    this._finishRefresh(reqKey,reqCache);
+  },
+  
+  _finishRefresh: function(requestKey,reqCache){
+    if((this.combinedReturnCalls && reqCache.numResponses === 1) || (!this.combinedReturnCalls && reqCache.numResponses === 0)){
+      if(this.debug) console.log('ThothSC: finishing off refresh request');
+      ThothSC.requestCache.destroy(requestKey);
+    }
+  },
   
   // this is mainly the same setup as with onFetchResult, only with a single record and no dataSourceDidComplete
   // as ThothSC.loadRecord will take care of the needed actions.
@@ -373,6 +421,8 @@ ThothSC.DataSource = SC.DataSource.extend({
       ThothSC.requestCache.destroy(requestKey);
     }  
   },
+  
+  
 
   onRefreshRecordError: function(refreshRecordError){
     //function to handle Thoth error messages for fetch
