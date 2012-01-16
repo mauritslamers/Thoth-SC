@@ -43,7 +43,7 @@ ThothSC = SC.Object.create(
   ACTION_FETCH_REPLY : "fetch_reply",
   ACTION_FETCH_RELATION_REPLY : "fetch_relation_reply",
   ACTION_REFRESH_REPLY : 'refreshRecord_reply', 
-  ACTION_REFRESH_REPLATION_REPLY : 'refreshRecord_relation_reply',
+  ACTION_REFRESH_RELATION_REPLY : 'refreshRecord_relation_reply',
   ACTION_CREATE_REPLY : 'createRecord_reply',
   ACTION_UPDATE_REPLY : 'updateRecord_reply',
   ACTION_DELETE_REPLY : 'deleteRecord_reply',
