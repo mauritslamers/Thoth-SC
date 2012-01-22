@@ -20,9 +20,9 @@ ThothSC = SC.Object.create(
   FAKE: 'fake', // fake client, for testing purposes and other offline tricks
   
   //events
-  CONNECTION_CLOSED: 'closed ', 
-  CONNECTION_OPENED: 'opened',
-  CONNECTION_ERROR: 'error',
+  CONNECTION_CLOSED: 'connection_closed ', 
+  CONNECTION_OPENED: 'connection_opened',
+  CONNECTION_ERROR: 'connection_error',
   CONNECTION_REAUTHFAILED: 'reauth_failed',
   DS_ERROR_FETCH: 'ds_error_fetch',
   DS_ERROR_REFRESH: 'ds_error_refresh',
@@ -66,6 +66,20 @@ ThothSC = SC.Object.create(
   
   client: null, // the data source will hook up the proper client here
   
-  requestCache: null // initialising a data source will put a request cache manager here
-  
+  requestCache: null, // initialising a data source will put a request cache manager here
+ 
+  statesMixin: { 
+    connection_closed: function(data){
+      SC.Logger.log("ThothSC state mixin: Connection closed");
+    },             
+    connection_opened: function(data){
+      SC.Logger.log("ThothSC state mixin: Connection opened");
+    },
+    connection_error: function(data){
+      SC.Logger.log("ThothSC state mixin: Connection error");
+    },
+    reauth_failed: function(data){
+      SC.Logger.log("ThothSC state mixin: reauth failed");
+    }
+  }
 }) ;
