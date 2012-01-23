@@ -301,7 +301,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       }
       requestCache.store.dataSourceDidErrorQuery(requestCache.query);
       ThothSC.requestCache.destroy(requestCacheKey);
-      ThothSC.client.appCallback(ThothSC.DS_ERROR_FETCH, message);
+      ThothSC.client.applicationCallback(ThothSC.DS_ERROR_FETCH, message);
     }
   },
   
@@ -448,7 +448,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       store = curRequestData.store;
       store.dataSourceDidError(storeKey);
       ThothSC.requestCache.destroy(requestCacheKey);
-      ThothSC.client.appCallback(ThothSC.DS_ERROR, message);
+      ThothSC.client.applicationCallback(ThothSC.DS_ERROR, message);
     }
   },
   
@@ -492,7 +492,7 @@ ThothSC.DataSource = SC.DataSource.extend({
           message = "Unknown server error";
       }
       ThothSC.requestCache.destroyObject(requestCache);
-      ThothSC.client.appCallback(ThothSC.DS_ERROR_CREATE, message);
+      ThothSC.client.applicationCallback(ThothSC.DS_ERROR_CREATE, message);
     }
   },
   
@@ -517,7 +517,7 @@ ThothSC.DataSource = SC.DataSource.extend({
 		  //  relations.forEach(function(rel){ ThothSC.updateOppositeRelation(store,storeKey,rel,recordData);});
 		  //}
 		} 
-		else ThothSC.client.appCallback(ThothSC.DS_ERROR_CREATE,"problem with updating the newly created record");
+		else ThothSC.client.applicationCallback(ThothSC.DS_ERROR_CREATE,"problem with updating the newly created record");
 		ThothSC.requestCache.destroyObject(requestCache);
   },
   
@@ -555,7 +555,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       }
       requestCache.store.dataSourceDidError(requestCache.storeKey);
       ThothSC.requestCache.destroyObject(requestCache);
-      ThothSC.client.appCallback(ThothSC.DS_ERROR_UPDATE, message);
+      ThothSC.client.applicationCallback(ThothSC.DS_ERROR_UPDATE, message);
     }
   },
   
@@ -596,7 +596,7 @@ ThothSC.DataSource = SC.DataSource.extend({
         message = "Unknown server error";           
     }
     requestCache.store.dataSourceDidError(requestCache.storeKey);
-    ThothSC.client.appCallback(ThothSC.DS_ERROR_DELETE, message);
+    ThothSC.client.applicationCallback(ThothSC.DS_ERROR_DELETE, message);
     ThothSC.requestCache.destroyObject(requestCache);
   },
   
@@ -634,7 +634,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       //   });
       // }
     } else {
-      ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHCREATE,message);
+      ThothSC.client.applicationCallback(ThothSC.DS_ERROR_PUSHCREATE,message);
     }
   },
 
@@ -652,13 +652,13 @@ ThothSC.DataSource = SC.DataSource.extend({
       });
     }
     if(!rec || !recType || !key){
-      ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHUPDATE,"invalid push update request");
+      ThothSC.client.applicationCallback(ThothSC.DS_ERROR_PUSHUPDATE,"invalid push update request");
       return;
     }
     ret = this._store.pushRetrieve(recType,key,rec);
     if(!ret){
       msg ="The server has tried to update a record in your application, but wasn't allowed to do so!";
-      ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHUPDATE, msg);
+      ThothSC.client.applicationCallback(ThothSC.DS_ERROR_PUSHUPDATE, msg);
     }
   },
   
@@ -668,7 +668,7 @@ ThothSC.DataSource = SC.DataSource.extend({
         recData,sK, msg;
     
     if(!resource || !recType || !key){
-      ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHUPDATE,"invalid push delete request");
+      ThothSC.client.applicationCallback(ThothSC.DS_ERROR_PUSHUPDATE,"invalid push delete request");
       return;      
     }
     sK = this._store.pushDestroy(recType,key);
@@ -678,7 +678,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     } 
     else {
       msg = "The server has tried to delete a record from your application, but wasn't allowed to do so!";
-      ThothSC.client.appCallback(ThothSC.DS_ERROR_PUSHDELETE, msg);
+      ThothSC.client.applicationCallback(ThothSC.DS_ERROR_PUSHDELETE, msg);
     }
   }
   
