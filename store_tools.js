@@ -215,7 +215,7 @@ SC.mixin(ThothSC,{
       if(sK){ 
         hash = store.readDataHash(sK);
         prop = hash[oppProperty];
-        if(prop instanceof Array) prop.push(idToAdd);
+        if(prop instanceof Array) prop.pushObject(idToAdd);
         else hash[oppProperty] = idToAdd;
         store.pushRetrieve(oppRecType,relKey,hash);
       }      
