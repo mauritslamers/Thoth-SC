@@ -67,19 +67,46 @@ ThothSC = SC.Object.create(
   client: null, // the data source will hook up the proper client here
   
   requestCache: null, // initialising a data source will put a request cache manager here
- 
-  statesMixin: { 
-    connection_closed: function(data){
-      SC.Logger.log("ThothSC state mixin: Connection closed");
-    },             
-    connection_opened: function(data){
-      SC.Logger.log("ThothSC state mixin: Connection opened");
-    },
-    connection_error: function(data){
-      SC.Logger.log("ThothSC state mixin: Connection error");
-    },
-    reauth_failed: function(data){
-      SC.Logger.log("ThothSC state mixin: reauth failed");
+
+  init: function(){
+    arguments.callee.base.apply(this,arguments); // do sc_super
+    // create statesMixin
+    this._createStatesMixin();
+  },
+  
+  _singleApplicationCallback: false, // can be set by connect
+  
+  _createStatesMixin: function(){
+    // events are all CONNECTION_ and DS_ERROR messages
+    var createF = function(name){
+      return function(data){
+        SC.Logger.log("ThothSC state mixin: " + name + ": " + data);
+      };
+    };
+    
+    var i, ret = {};
+    for(i in this){
+      if(this.hasOwnProperty(i)){
+        if( (i.search("CONNECTION_") === 0) || (i.search("DS_ERROR_") === 0) ){ // if event for states
+          ret[i] = createF(i);
+        } 
+      }
     }
+    this.statesMixin = ret;
   }
+ 
+  // statesMixin: { 
+  //   connection_closed: function(data){
+  //     SC.Logger.log("ThothSC state mixin: Connection closed");
+  //   },             
+  //   connection_opened: function(data){
+  //     SC.Logger.log("ThothSC state mixin: Connection opened");
+  //   },
+  //   connection_error: function(data){
+  //     SC.Logger.log("ThothSC state mixin: Connection error");
+  //   },
+  //   reauth_failed: function(data){
+  //     SC.Logger.log("ThothSC state mixin: reauth failed");
+  //   }
+  // }
 }) ;
