@@ -70,7 +70,6 @@ SC.mixin(ThothSC,{
         }// end relation parsing
         ret.push(curRec);
      }
-     //SC.Logger.log("returning: " + JSON.stringify(ret));
      return ret;
   },
   
@@ -147,8 +146,8 @@ SC.mixin(ThothSC,{
           if(oppRelation.kindOf(SC.ManyAttribute)){//  || prop.kindOf(SC.ChildrenAttribute)){
           //if(oppRelation.type === 'toMany'){
             if(prop){
-              if(opts.isRemove) prop = prop.without(recId);
-              else prop.push(recId);
+              if(opts.isRemove) prop.removeObject(recId)//prop = prop.without(recId);
+              else prop.pushObject(recId);
             }
             else hash[oppProperty] = opts.isRemove? []: [recId];
           }
