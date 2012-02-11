@@ -617,8 +617,14 @@ ThothSC.DataSource = SC.DataSource.extend({
         message = "The server has tried to push a createRecord request to your application, but isn't allowed to store it",
         recType, storeKey, me = this;
     
+    //SC.Logger.log("onPushedCreateRecord...");
+    //console.log(req);
     recType = ThothSC.modelCache.modelFor(resource);
-    if(!recType) return; // ignore
+    if(!recType){
+      SC.Logger.log("cannot update opposite relation because record type cannot be found...");
+      return; // ignore pushed update
+    } 
+
     if(relations){ // merge relation data if present
       relations.forEach(function(rel){
         ThothSC.mergeRelation(rel,record);
