@@ -524,12 +524,12 @@ ThothSC.DataSource = SC.DataSource.extend({
   updateRecord: function(store,storeKey,params){
     var recType = store.recordTypeFor(storeKey),
         record = store.readDataHash(storeKey),
-        baseReq = this.createBaseRequest(recType,record),
+        baseReq = this.createBaseRequest(recType,record,store.idFor(storeKey)),
         numResponses = 1, requestKey;
         
     //if(this.combineReturnCalls && baseReq.relations) numResponses += baseReq.relations.length;
     requestKey = ThothSC.requestCache.store({ store: store, storeKey: storeKey, params: params, request: baseReq, numResponses: numResponses });
-    baseReq.returnData = { requestCacheKey: requestKey};
+    baseReq.returnData = { requestCacheKey: requestKey };
     ThothSC.client.send({updateRecord: baseReq});
     return YES;
   },
@@ -569,7 +569,7 @@ ThothSC.DataSource = SC.DataSource.extend({
   destroyRecord: function(store,storeKey,params){
     var recType = store.recordTypeFor(storeKey),
         record = store.readDataHash(storeKey),
-        baseReq = this.createBaseRequest(recType,record),
+        baseReq = this.createBaseRequest(recType,record,store.idFor(storeKey)),
         requestKey;
         
     requestKey = ThothSC.requestCache.store({ store: store, storeKey: storeKey, params: params, recordData: record });
