@@ -59,12 +59,12 @@ SC.mixin(ThothSC,{
     var ud = this.client? this.client.userData: null;
     if(ud){
       this.client.on('authError', function(data){
-        this.client.appCallback({ reAuthError: data});
+        this.client.applicationCallback({ reAuthError: data});
         callback(false);
       },this);
 
       this.client.on('authFailure', function(data){
-         this.client.appCallback({ reAuthFailure: data});
+         this.client.applicationCallback({ reAuthFailure: data});
          callback(false);
       },this);
       
