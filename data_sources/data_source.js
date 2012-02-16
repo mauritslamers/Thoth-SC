@@ -106,6 +106,9 @@ ThothSC.DataSource = SC.DataSource.extend({
       combineReturnCalls: this.combineReturnCalls || undefined,
       record: rec
     };
+    if(primaryKey && (!ret.record[primKey] || ret.record[primKey] !== primaryKey)){
+      ret.record[primKey] = primaryKey; // add primary key to hash 
+    }
     return ThothSC.stripRelations(ret);
   },
   
@@ -526,7 +529,7 @@ ThothSC.DataSource = SC.DataSource.extend({
         record = store.readDataHash(storeKey),
         baseReq = this.createBaseRequest(recType,record,store.idFor(storeKey)),
         numResponses = 1, requestKey;
-        
+      
     //if(this.combineReturnCalls && baseReq.relations) numResponses += baseReq.relations.length;
     requestKey = ThothSC.requestCache.store({ store: store, storeKey: storeKey, params: params, request: baseReq, numResponses: numResponses });
     baseReq.returnData = { requestCacheKey: requestKey };
