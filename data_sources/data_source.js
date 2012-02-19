@@ -122,11 +122,28 @@ ThothSC.DataSource = SC.DataSource.extend({
     return { fetch: baseReq };
   },
   
-  getNumberOfResponses: function(request){
+  getNumberOfResponses: function(request,action){
     var ret = 1;
     var baseRequest = request.fetch || request; 
+    
+    var isRetrievable = function(rel){
+      if(rel.isNested) return false;
+      if(rel.isDirectRelation && rel.isMaster && !rel.isChildRecord) return false;
+      return true;
+    };
+    
     if(!this.combineReturnCalls && baseRequest.relations){
-      ret += baseRequest.relations.length;
+      baseRequest.relations.forEach(function(r){
+        switch(action){
+          case ThothSC.ACTION_FETCH: 
+              if(isRetrievable(r)) ret += 1; 
+              break;
+          case ThothSC.ACTION_REFRESH: 
+            if(isRetrievable(r)) ret += 1; 
+            break; // for now only fetch and refresh
+        }
+      });
+      //ret += baseRequest.relations.length;
     }
     return ret;
   },
@@ -141,7 +158,8 @@ ThothSC.DataSource = SC.DataSource.extend({
     rectype = ThothSC.recordTypeInQuery(query);
     if(rectype && query.isRemote()){
       request = this.createFetchRequest(rectype,query);      
-      numResponses = this.getNumberOfResponses(request);
+      numResponses = this.getNumberOfResponses(request,ThothSC.ACTION_FETCH);
+      SC.Logger.log("Expecting " + numResponses + " responses");
       requestKey = ThothSC.requestCache.store({ store: store, query: query, numResponses: numResponses, recordType: rectype });
       request.fetch.returnData = { requestKey: requestKey };
       if(this.debug) console.log('Sending fetchRequest: ' + JSON.stringify(request));
@@ -227,11 +245,14 @@ ThothSC.DataSource = SC.DataSource.extend({
   },
   
   _finishFetch: function(requestKey,requestCache){
-    if((this.combinedReturnCalls && requestCache.numResponses === 1) ||
-          (!this.combinedReturnCalls && requestCache.numResponses === 0)){
-      if(this.debug) console.log('ThothSC: finishing off Fetch request');
-      if(requestCache.query) requestCache.store.dataSourceDidFetchQuery(requestCache.query);
+    if((this.combinedReturnCalls && requestCache.numResponses === 1) || 
+        (!this.combinedReturnCalls && requestCache.numResponses === 0)){
+      if(requestCache.query) {
+        requestCache.store.dataSourceDidFetchQuery(requestCache.query);
+      }
+      else SC.Logger.log("a fetch without a query?...");
       ThothSC.requestCache.destroy(requestKey);
+      if(this.debug) console.log('ThothSC: finished Fetch request');
     }
   },
   
@@ -340,7 +361,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       recordType: recType, 
       storeKey: storeKey,
       id: recId,
-      numResponses: this.getNumberOfResponses(baseReq)
+      numResponses: this.getNumberOfResponses(baseReq,ThothSC.ACTION_REFRESH)
     };
     var requestKey = ThothSC.requestCache.store(cacheObj);
     baseReq.returnData = { requestCacheKey: requestKey };
