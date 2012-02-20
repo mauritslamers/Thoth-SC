@@ -311,7 +311,8 @@ ThothSC.DataSource = SC.DataSource.extend({
 
     if(fetchError){
       errorCode = fetchError.errorCode;
-      requestCacheKey = fetchError.returnData.requestCacheKey;
+      requestCacheKey = fetchError.returnData.requestKey;
+      if(!requestCacheKey) SC.Logger.log("this is a problem, a fetch error withou");
       requestCache = ThothSC.requestCache.retrieve(requestCacheKey);
       switch(errorCode){
         case ThothSC.THOTH_ERROR_DENIEDONPOLICY: 
