@@ -22,6 +22,8 @@ ThothSC.DataSource = SC.DataSource.extend({
   
   connectUsing: ThothSC.SOCKETIO,
   
+  useSSL: false, // when using ssl, set this to true
+  
   logTraffic: false, // send the messages sent to the server to the console too
   
   defaultResponder: null, // default responder for events, can be used for state charts
@@ -586,6 +588,17 @@ ThothSC.DataSource = SC.DataSource.extend({
   
   onUpdateRecordResult: function(result){
     var requestCache = ThothSC.requestCache.retrieve(result.returnData.requestCacheKey);
+    // first check whether there are slave relations, and copy them on the new hash
+    if(!requestCache){
+      SC.Logger.log("updateRecordResult without a requestCache... this must be wrong...");
+      return; 
+    } 
+    var rels = requestCache.request.relations.filterProperty('isMaster',false);
+    var hash = requestCache.store.readDataHash(requestCache.storeKey);
+    rels.forEach(function(r){
+      var propName = r.propertyKey || r.propertyName;
+      result.record[propName] = hash[propName];
+    });
     
     requestCache.store.dataSourceDidComplete(requestCache.storeKey,result.record);
     ThothSC.requestCache.destroyObject(requestCache);
