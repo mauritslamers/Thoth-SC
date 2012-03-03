@@ -75,7 +75,7 @@ SC.mixin(ThothSC,{
     recType = query.get('recordType');
     if(recType){
       try {
-        bucket = recType.prototype.bucket; 
+        bucket = recType.prototype.resource || recType.prototype.bucket; 
       }
       catch(e) {
         msg = "ThothSC cannot retrieve the resource from the record model. ";
