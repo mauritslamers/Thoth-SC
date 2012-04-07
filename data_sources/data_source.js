@@ -24,6 +24,8 @@ ThothSC.DataSource = SC.DataSource.extend({
   
   useSSL: false, // when using ssl, set this to true
   
+  useWebSocket: true, // flag to disable websocket as transport if needed
+  
   logTraffic: false, // send the messages sent to the server to the console too
   
   defaultResponder: null, // default responder for events, can be used for state charts
@@ -354,7 +356,7 @@ ThothSC.DataSource = SC.DataSource.extend({
     }
     return true;
   },
-  
+    
   retrieveRecord: function(store,storeKey,id){
     var recType = store.recordTypeFor(storeKey);
     var baseReq = this.createBaseRequest(recType);
@@ -461,6 +463,7 @@ ThothSC.DataSource = SC.DataSource.extend({
       errorCode = refreshRecordError.errorCode;
       requestCacheKey = refreshRecordError.returnData.requestCacheKey;
       curRequestData = ThothSC.requestCache.retrieve(requestCacheKey);
+      if(!curRequestData) return; // the server can return the same message twice
       switch(errorCode){
         case ThothSC.THOTH_ERROR_DENIEDONPOLICY: 
           message = "The policy settings on the server don't allow you to refresh this record"; 
@@ -715,10 +718,11 @@ ThothSC.DataSource = SC.DataSource.extend({
       ThothSC.client.applicationCallback(ThothSC.DS_ERROR_PUSHUPDATE,"invalid push delete request");
       return;      
     }
-    sK = this._store.pushDestroy(recType,key);
-    if(sK){
+    sK = recType.storeKeyFor(key);
+    if(sK){ 
       recData = this._store.readDataHash(sK);
       ThothSC.updateOppositeRelations(this._store,sK,{recordId: key, isRemove: true, recordData: recData}); // isRemove
+      this._store.pushDestroy(recType,key);
     } 
     else {
       msg = "The server has tried to delete a record from your application, but wasn't allowed to do so!";
