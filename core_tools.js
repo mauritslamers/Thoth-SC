@@ -3,11 +3,14 @@
 SC.mixin(ThothSC,{
   
   getTopLevelName: function(object){ //to send the application name 
-		var completeName = object.toString();
-		if(completeName){
-			return completeName.split(".")[0];
-		}
-		else return "";
+    if(object.appName) return object.appName;
+    else {
+  		var completeName = object.toString();
+  		if(completeName){
+  			return completeName.split(".")[0];
+  		}
+  		else return "";      
+    }
 	},
 	
 	// Using this to start the connection to Thoth
